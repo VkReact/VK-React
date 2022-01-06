@@ -415,7 +415,6 @@ var VKReact = {
             return new Promise(resolve => setTimeout(resolve, ms))
         }
         async function onUrlSwitch() {
-            console.log(url)
             //Object.values(this.plugins).forEach(it => it.url_switch(this))
             let audio = document.querySelector("#l_aud a")
             if (!audio.href.endsWith("?section=all")) {
@@ -424,7 +423,7 @@ var VKReact = {
             let wall = await find_wall()
             if (wall) {
                 let user_id = (wall.href.match(/wall(\d+)/i) || [])[1]
-                let fetched = await fetch(`${apiURL}/get_user?user_id=${user_id}`)
+                let fetched = await fetch(`${VKReact.apiURL}/get_user?user_id=${user_id}`)
                 let json = await fetched.json()
                 console.log(json)
                 if (!document.querySelector("a[href='/verify']") && json.status == "OK") {

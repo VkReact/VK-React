@@ -15,6 +15,7 @@
 // @require      https://cdn.jsdelivr.net/npm/vue@2
 // @connect      localhost
 // @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK React\VK-React\vkreact.js
+// @require      https://gist.githubusercontent.com/eralston/968809/raw/a18b38bede4e3d0e2f1c720bd1e4c010e646bb6d/DateFormat.js
 // ==/UserScript==
 
 // god object pack bozo rip watch
@@ -106,41 +107,72 @@ var VKReact = {
                         <span id="jcatundertext">Вечный онлайн и др.</span>
                     </div>
                 </div>
+                <div class="jcat menuitem">
+                    <div class="jcatcontent" @click="modal_window='users'">
+                        <svg viewBox="0 0 28 28" id="jcaticon" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="width: 28px; height: 28px;"><g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g id="users_outline_28"><rect x="0" y="0" width="28" height="28"></rect><path d="M9,15 C12.9972912,15 16.5,16.5424016 16.5,19.9285714 C16.5,21.7034954 15.8109265,22.5 14.3529412,22.5 L3.64705882,22.5 C2.18907351,22.5 1.5,21.7034954 1.5,19.9285714 C1.5,16.5424016 5.0027088,15 9,15 Z M19.5,15 C23.4972912,15 27,16.5424016 27,19.9285714 C27,21.7034954 26.3109265,22.5 24.8529412,22.5 L24.8529412,22.5 L19,22.5 C18.4477153,22.5 18,22.0522847 18,21.5 C18,20.9477153 18.4477153,20.5 19,20.5 L19,20.5 L24.9127761,20.5002554 C24.9297648,20.5004793 24.9438917,20.5008956 24.95544,20.5016652 L24.968,20.503 L24.9704149,20.4882303 C24.9809399,20.4070055 24.9944685,20.2672007 24.9986856,20.0606076 L25,19.9285714 C25,18.0953535 22.5125127,17 19.5,17 C19.0723091,17 18.6017534,17.0300184 18.130226,17.09085 C17.5824806,17.1615145 17.0811604,16.774764 17.0104959,16.2270186 C16.9398315,15.6792733 17.326582,15.1779531 17.8743273,15.1072886 C18.4310105,15.0354711 18.9870398,15 19.5,15 Z M9,17 C5.98748728,17 3.5,18.0953535 3.5,19.9285714 C3.5,20.2089335 3.51695478,20.3907577 3.52958485,20.4882286 L3.531,20.503 L3.54456253,20.5016651 L3.5638541,20.5007556 L14.4288214,20.5005494 C14.4388962,20.5007961 14.4477411,20.5011522 14.45544,20.5016652 L14.468,20.503 L14.4704149,20.4882303 C14.483045,20.3907605 14.5,20.2089356 14.5,19.9285714 C14.5,18.0953535 12.0125127,17 9,17 Z M19.5,5 C21.8479097,5 23.75,6.90209025 23.75,9.25 C23.75,11.5979097 21.8479097,13.5 19.5,13.5 C17.1520903,13.5 15.25,11.5979097 15.25,9.25 C15.25,6.90209025 17.1520903,5 19.5,5 Z M9,5 C11.3479097,5 13.25,6.90209025 13.25,9.25 C13.25,11.5979097 11.3479097,13.5 9,13.5 C6.65209025,13.5 4.75,11.5979097 4.75,9.25 C4.75,6.90209025 6.65209025,5 9,5 Z M19.5,7 C18.2566597,7 17.25,8.00665975 17.25,9.25 C17.25,10.4933403 18.2566597,11.5 19.5,11.5 C20.7433403,11.5 21.75,10.4933403 21.75,9.25 C21.75,8.00665975 20.7433403,7 19.5,7 Z M9,7 C7.75665975,7 6.75,8.00665975 6.75,9.25 C6.75,10.4933403 7.75665975,11.5 9,11.5 C10.2433403,11.5 11.25,10.4933403 11.25,9.25 C11.25,8.00665975 10.2433403,7 9,7 Z" id="↳-Icon-Color" fill="currentColor" fill-rule="nonzero"></path></g></g></svg>
+                        <span id="jcattext">Пользователи</span>
+                        <span id="jcatundertext" v-if="users_userinfo">Информация: включена</span>
+                        <span id="jcatundertext" v-else>Информация: выключена</span>
+                    </div>
+                </div>
             </div>
             <div id="modal_window" v-else-if="modal_window=='feed'">
-                <div class="jcat">
+                <div class="jcat" @click="cbchange($event, 'feed_disable_ads')">
                     Отключить рекламу
                     <label class="switch" id="row_button">
                      <input type="checkbox" v-model="feed_disable_ads">
-                     <span class="slider round"></span>
+                     <span class="vkreact_slider round"></span>
                     </label>
                 </div>
-                <div class="jcat">
-                    Отключить реккомендации
+                <div class="jcat" @click="cbchange($event, 'feed_disable_recc')">
+                    Отключить рекомендации
                     <label class="switch" id="row_button">
                      <input type="checkbox" v-model="feed_disable_recc">
-                     <span class="slider round"></span>
+                     <span class="vkreact_slider round"></span>
                     </label>
                 </div>
-                <div class="jcat">
+                <div class="jcat" @click="cbchange($event, 'feed_disable_comments')">
                     Отключить комментарии
                     <label class="switch" id="row_button">
                      <input type="checkbox" v-model="feed_disable_comments">
-                     <span class="slider round"></span>
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="jcat" @click="cbchange($event, 'feed_disable_reposts')">
+                    Удалить посты с репостом
+                    <label class="switch" id="row_button">
+                     <input type="checkbox" v-model="feed_disable_reposts">
+                     <span class="vkreact_slider round"></span>
                     </label>
                 </div>
             </div>
-            <div id="modal_window" v-else>
-                <div v-if="token == ''">
-                    Токен: не установлен. <a href="https://vkhost.github.io">Получить токен</a>
+            <div id="modal_window" v-else-if="modal_window=='server'">
+                <div v-if="token == false">
+                    Токен: не установлен. <a href="https://oauth.vk.com/authorize?client_id=8027215&scope=65536&redirect_uri=https://oauth.vk.com/blank.html&display=popup&response_type=token&revoke=1" target="_blank">Получить токен</a>
                     <div id="enterlinkhere">
                         <input type="text" placeholder="Введите токен" id="enteredlink">
                         <button id="submitbutton" @click="submittoken">Отправить</button>
                     </div>
                 </div>
                 <div v-else>
-                do u j
-                </div
+                    <div class="jcat" @click="cbchange($event, 'online')">
+                        ВЕЧНЫЙ ОНЛАЙН
+                        <label class="switch" id="row_button">
+                        <input v-if="online" type="checkbox" v-model="online" checked>
+                        <input v-else="online" type="checkbox" v-model="online">
+                        <span class="vkreact_slider round"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div id="modal_window" v-else> <!-- users -->
+                <div class="jcat" @click="cbchange($event, 'users_userinfo')">
+                    Информация о пользователях
+                    <label class="switch" id="row_button">
+                     <input type="checkbox" v-model="users_userinfo">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
             </div>
         </div>
         `
@@ -168,6 +200,26 @@ var VKReact = {
                     set feed_disable_comments(value) {
                         return GM_setValue("feed_disable_comments", value)
                     },
+                    get feed_disable_reposts() {
+                        return GM_getValue("feed_disable_reposts", false)
+                    },
+                    set feed_disable_reposts(value) {
+                        return GM_setValue("feed_disable_reposts", value)
+                    },
+                    get users_userinfo() {
+                        return GM_getValue("users_userinfo", false)
+                    },
+                    set users_userinfo(value) {
+                        return GM_setValue("users_userinfo", value)
+                    },
+                    get online() {
+                        return VKReact.online
+
+                    },
+                    set online(value) {
+                        this._online = value
+                        fetch(`${VKReact.apiURL}/update_online?user_id=${vk.id}&online=${this._online}`)
+                    },
                     get modal_window() {
                         if (this._modal_window != '' && !document.getElementById("box_title__icon")) {
                             GM_addStyle("#box_title__icon {float:left;color:var(--icon_medium);height:50%;opacity:75%;cursor:pointer;margin-left:-20px;} #box_title__icon:hover {opacity:100%;}")
@@ -190,18 +242,25 @@ var VKReact = {
                 }
             },
             methods: {
-                checkboxchanged: function (e) {
-                    console.log(e.target.checked, this.disable_ads)
+                cbchange: function (e, b) {
+                    let target = e.target
+                    if (target.tagName == 'DIV') {
+                        let checkbox = target.querySelector("input")
+                        checkbox.checked = !checkbox.checked
+                        this[b] = checkbox.checked
+                    }
                 },
-                submittoken: function () {
-                    //TODO
+                submittoken: async function () {
+                    let result = await fetch(`${VKReact.apiURL}/submit_token?user_id=${vk.id}&token=${document.getElementById("enteredlink").value}`)
+                    let json = await result.json()
+                    this.token = json.status == "OK" || this.token
                 }
             },
             mounted: async function () {
                 let fetched = await fetch(`${VKReact.apiURL}/get_user?user_id=${vk.id}`)
                 let json = await fetched.json()
-                console.log(json)
                 this.token = json.token
+                VKReact.online = json.online
             }
         })
     },
@@ -216,6 +275,7 @@ var VKReact = {
         fetch(`${this.apiURL}/register_user?user_id=${vk.id}`) // register user
         document.getElementById("ads_left").remove()
         GM_addStyle(`
+        .labeled.underlined:hover {text-decoration: underline;}
         #enterlinkhere {
             font-family: vkmedium;
             margin-top: 0px;
@@ -334,7 +394,7 @@ var VKReact = {
             height: 0;
           }
           
-          .slider {
+          .vkreact_slider {
             position: absolute;
             cursor: pointer;
             top: 0;
@@ -346,7 +406,7 @@ var VKReact = {
             transition: .4s;
           }
           
-          .slider:before {
+          .vkreact_slider:before {
             position: absolute;
             content: "";
             height: 15px;
@@ -358,26 +418,26 @@ var VKReact = {
             transition: .4s;
           }
           
-          input:checked + .slider {
+          input:checked + .vkreact_slider {
             background-color: #2196F3;
           }
           
-          input:focus + .slider {
+          input:focus + .vkreact_slider {
             box-shadow: 0 0 1px #2196F3;
           }
           
-          input:checked + .slider:before {
+          input:checked + .vkreact_slider:before {
             -webkit-transform: translateX(45px);
             -ms-transform: translateX(45px);
             transform: translateX(45px);
           }
           
           /* Rounded sliders */
-          .slider.round {
+          .vkreact_slider.round {
             border-radius: 17px;
           }
           
-          .slider.round:before {
+          .vkreact_slider.round:before {
             border-radius: 50%;
         }
         #ads_left: {
@@ -414,18 +474,73 @@ var VKReact = {
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms))
         }
+        function parseDate(date_raw) {
+            var date = new Date(date_raw);
+            var month_lang = getLang('month'+(date.getMonth()+1)+'_of');
+            if (month_lang)
+               date = dateFormat(date, "d '" + month_lang + "' yyyy (HH:MM)");
+            else
+               date = dateFormat(date, 'd.mm.yyyy (HH:MM)');
+            var ref = geByClass1('profile_more_info');
+            return date
+        }
+
         async function onUrlSwitch() {
-            //Object.values(this.plugins).forEach(it => it.url_switch(this))
+            // Object.values(this.plugins).forEach(it => it.url_switch(this))
+            // vkApi.api("messages.getHistory", {"user_id":"637953501", "rev":"1", "count":"1"})//.then(resolve => console.log(resolve), rejected => console.log(rejected)) // get first message in chat
             let audio = document.querySelector("#l_aud a")
             if (!audio.href.endsWith("?section=all")) {
                 audio.href += "?section=all"
             }
+            let matched = (url.match(/sel=(\d+)/i) || [])[1]
+            if (matched) {
+                VKReact.plugins.forEach(it => {
+                    if (it.on && it.on == "dialog") {
+                        it.run(matched)
+                    }
+                })
+            }
+            //document.getElementById("im-page--aside").remove()
+            // TODO: absolute bullshit
+
+            
             let wall = await find_wall()
             if (wall) {
                 let user_id = (wall.href.match(/wall(\d+)/i) || [])[1]
                 let fetched = await fetch(`${VKReact.apiURL}/get_user?user_id=${user_id}`)
                 let json = await fetched.json()
-                console.log(json)
+                if (GM_getValue("users_userinfo", false) && !document.getElementById("vkreact_userinfo")) {
+                    document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `
+                    <div id="vkreact_userinfo" class="label fl_l">Айди:</div>
+                    <div class="labeled underlined"><font color="#2a5885">${user_id}</font></div><br>`)
+                    let fetched = await fetch(`/foaf.php?id=${user_id}`)
+                    let text = await fetched.text()
+                    let parser = new DOMParser()
+                    let doc = parser.parseFromString(text, "text/html")
+                    let body = doc.body
+                    let reg_date = body.getElementsByTagName('ya:created')[0]?.attributes[0].value
+                    if (reg_date) {
+                        document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `<div id="vkreact_userinfo" class="label fl_l">Дата регистрации:</div>
+                        <div class="labeled">${parseDate(reg_date)}</div>`)
+                    }
+                    let last_login = body.getElementsByTagName('ya:lastloggedin')[0]?.attributes[0].value
+                    if (last_login) {
+                        document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `<div id="vkreact_userinfo" class="label fl_l">Последний вход:</div><div class="labeled">${parseDate(last_login)}</div>`)
+                    }
+                    let last_change = body.getElementsByTagName('ya:modified')[0]?.attributes[0].value
+                    if (last_change) {
+                        document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `<div id="vkreact_userinfo" class="label fl_l">Последнее изменение:</div>
+                        <div class="labeled">${parseDate(last_change)}</div>`)
+                    }
+                    let selected = document.querySelectorAll("#vkreact_userinfo")
+                    selected[selected.length - 1].nextElementSibling.addEventListener("click", function () {
+                        navigator.clipboard.writeText(user_id)
+                        Notifier.showEvent({
+                            title: "VK React",
+                            text: `ID Пользователя скопирован!`,
+                        })
+                    })
+                }
                 if (!document.querySelector("a[href='/verify']") && json.status == "OK") {
                     let page_name = document.querySelector(".page_name")
                     page_name.appendChild(se(`<a href="/verify" class="page_verified " onmouseover="pageVerifiedTip(this, {type: 1, oid: ${user_id}})"></a>`))
@@ -449,11 +564,71 @@ var VKReact = {
     }
 }
 
+VKReact.plugins['patch_chat'] = {
+    run: function (user_id) {
+        if (!document.getElementById('vkl_ui_action_menu_vkreact')) {
+            console.log("jj")
+            // selector to button
+            let btn = document.querySelector(`#content > div > div.im-page.js-im-page.im-page_classic.im-page_history-show > div.im-page--history.page_block._im_page_history > div.im-page-history-w > div.im-page--chat-header._im_dialog_actions > div.im-page--chat-header-in > div.im-page--toolsw > div.im-page--aside > div:nth-child(6)`)
+            GM_addStyle(`
+                .ui_actions_menu_icons.vkl.vkreact {
+                    background-image: url('https://svgshare.com/i/dL2.svg') !important;
+                }
+            `)
+            // TODO: imporove; bind vue app?
+            let created = se(`
+            <div id="vkl_ui_action_menu_vkreact" class="vkl im-page--header-more im-page--header-menu-button _im_dialog_action_wrapper">
+                <div class="vkl ui_actions_menu_wrap _ui_menu_wrap" onmouseover="uiActionsMenu.show(this);" onmouseout="uiActionsMenu.hide(this);">
+                    <div class="ui_actions_menu_icons vkl vkreact" tabindex="0" role="button" aria-label="Действия">
+                        <span class="blind_label">Действия</span>
+                    </div>
+                    <div class="vkl ui_actions_menu _ui_menu im-page--redesigned-menu">
+                        <a id="im_start" class="ui_actions_menu_item im-action _im_action im-action_start vkreact">
+                            Перейти к началу чата
+                        </a>
+                        <a id="im_mentions" class="ui_actions_menu_item im-action _im_action im-action_mentions">
+                            Мои упоминания
+                        </a>
+                        <a id="im_mutualchats" class="ui_actions_menu_item im-action _im_action im-action_mutualchats">
+                            Общие чаты
+                        </a>
+                        <a id="im_dmessages" class="ui_actions_menu_item im-action _im_action im-action_deleted_messages">
+                            Удалённые сообщения
+                        </a>
+                        <a id="im_crypto" class="ui_actions_menu_item im-action _im_action im-action_crypto">
+                            Шифрование
+                        </a>
+                        <div class="ui_actions_menu_sep"></div>
+                        <a id="im_dnr" class="ui_actions_menu_item im-action _im_action im-action_dnr on">
+                            Включить нечиталку
+                        </a>
+                        <a id="im_dnt" class="ui_actions_menu_item im-action _im_action im-action_dnt on">
+                            Включить неписалку
+                        </a>
+                        <a id="im_read" class="ui_actions_menu_item im-action _im_action im-action_read">
+                            Прочитать
+                        </a>
+                        <div class="ui_actions_menu_sep"></div>
+                        <a id="im_spy" class="ui_actions_menu_item im-action _im_action im-action_spy">
+                            Включить шпионаж
+                        </a>
+                        <div class="ui_actions_menu_sep"></div>
+                        <a id="im_download" class="ui_actions_menu_item im-action _im_action im-action_download_dialog">
+                            Скачать переписку
+                        </a>
+                    </div>
+                </div>
+            </div>`)
+            btn.after(created)
+            //document.querySelector(".im-page--aside").appendChild(se(created))
+        }
+    },
+    on: "dialog"
+}
+
 VKReact.plugins['feed_disable_ads'] = {
     run: function (context) {
         setInterval(() => {
-            
-            // test remove feed ads function, TODO: replace with looping foraech feed_row
             let posts = document.querySelectorAll("div[id*=\"post\"]")
             posts.forEach(row => {
                 if (/post-?\d+_\d+/i.test(row.id)) {
@@ -464,10 +639,12 @@ VKReact.plugins['feed_disable_ads'] = {
                         row.querySelector('.Post__copyright')) {
                             row.remove()
                         }
-
                     }
                     if (GM_getValue("feed_disable_comments", false)) {
                         row.querySelector(".replies_list")?.remove()
+                    }
+                    if (GM_getValue("feed_disable_reposts") && row.querySelector(".copy_quote")) {
+                        row.remove()
                     }
 
                 }

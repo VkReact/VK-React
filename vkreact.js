@@ -15,8 +15,22 @@
 // @require      https://cdn.jsdelivr.net/npm/vue@2
 // @connect      localhost
 // @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK React\VK-React\vkreact.js
+// @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK React\VK-React\utils.js
 // @require      https://gist.githubusercontent.com/eralston/968809/raw/a18b38bede4e3d0e2f1c720bd1e4c010e646bb6d/DateFormat.js
 // ==/UserScript==
+
+var VkAPI = {
+    apiURL: "https://api.vk.com/method/",
+    call: async function (method, arguments, log = false) {
+        arguments['access_token'] = VKReact.token
+        arguments['v'] = '5.131'
+        let result = await fetch(`${this.apiURL}/${method}?${new URLSearchParams(arguments).toString()}`)
+        let json = await result.json()
+        if (log) VKReact.log(`Response from ${method}: ${JSON.stringify(json)}`)
+        if (json['response']) return json["response"]
+        else return json
+    }
+}
 
 // god object pack bozo rip watch
 var VKReact = {
@@ -24,6 +38,21 @@ var VKReact = {
     apiURL: 'http://localhost/vkreact',
     htmls: {},
     modal_window: '',
+    get token() {
+        return GM_getValue("vkreact_vk_api_token")
+    },
+    set token(value) {
+        GM_setValue("vkreact_vk_api_token", value)
+    },
+    sleep: function(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms))
+    },
+    waitExist: async function (selector) {
+        while (!document.querySelector(selector)) {
+            await this.sleep(500)
+        }
+        return document.querySelector(selector)
+    },
     insertAfter: function(ref, item) {
         ref.parentNode.insertBefore(item, ref.nextSibling)
     },
@@ -54,7 +83,7 @@ var VKReact = {
                 <svg id="submiticon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 20px; height: 20px;"><path d="M9.2 3c-1.285 0-2.158.001-2.833.056-.658.054-.994.151-1.229.271a3 3 0 00-1.311 1.311c-.12.235-.217.57-.27 1.229C3.5 6.542 3.5 7.415 3.5 8.7v2.6c0 .585.001.933.022 1.191.01.11.02.176.028.212v.097c0 .761 0 1.264.068 1.642a1.723 1.723 0 01-.526-.16 2 2 0 01-.874-.874C2 12.98 2 12.42 2 11.3V8.7c0-2.52 0-3.78.49-4.743A4.5 4.5 0 014.457 1.99C5.42 1.5 6.68 1.5 9.2 1.5h2c1.12 0 1.68 0 2.108.218a2 2 0 01.874.874c.07.137.117.288.15.466C13.96 3 13.472 3 12.75 3H9.2z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M5.1 7.7c0-1.12 0-1.68.218-2.108a2 2 0 01.874-.874C6.62 4.5 7.18 4.5 8.3 4.5h6c1.12 0 1.68 0 2.108.218a2 2 0 01.874.874c.218.428.218.988.218 2.108v7.6c0 1.12 0 1.68-.218 2.108a2 2 0 01-.874.874c-.428.218-.988.218-2.108.218h-6c-1.12 0-1.68 0-2.108-.218a2 2 0 01-.874-.874C5.1 16.98 5.1 16.42 5.1 15.3V7.7zM8.3 6h6c.585 0 .933.001 1.191.022.158.013.224.03.242.036a.5.5 0 01.21.209c.005.018.022.084.035.242.02.258.022.606.022 1.191v7.6c0 .585-.001.933-.022 1.191-.013.158-.03.224-.036.242a.5.5 0 01-.209.21 1.253 1.253 0 01-.242.035c-.258.02-.606.022-1.191.022h-6c-.585 0-.933-.001-1.191-.022a1.253 1.253 0 01-.242-.036.5.5 0 01-.21-.209 1.255 1.255 0 01-.035-.242c-.02-.258-.022-.606-.022-1.191V7.7c0-.585.001-.933.022-1.191.013-.158.03-.224.036-.242a.5.5 0 01.209-.21c.018-.005.084-.022.242-.035C7.367 6.002 7.715 6 8.3 6zm7.438.06l-.003-.002.003.001zm.203.202v.003-.003zm0 10.476v-.003a.014.014 0 010 .003zm-.203.203h-.003.003zm-8.876 0h.003-.003zm-.203-.203v-.003.003zm0-10.476v0zm.203-.203h.003a.05.05 0 00-.003 0z" fill="currentColor"></path></svg>
             </div>
         `
-        new MessageBox({ title: "Сокращение ссылкок", width: 500, hideButtons: true, bodyStyle: 'padding:20px;height:222' }).content(html).show()
+        new MessageBox({ title: "Сокращение ссылкок", width: 500, hideButtons: true, bodyStyle: 'padding:20px' }).content(html).show()
         let shown = false
         document.getElementById("submiticon").addEventListener("click", () => {
             if (!VKReact.last_short) return
@@ -65,15 +94,8 @@ var VKReact = {
             })
         })
         document.getElementById("submitbutton").addEventListener("click", async () => {
-            let result = await fetch(`${VKReact.apiURL}/get_short_link`, {
-				headers: {
-				  'Content-Type': 'application/json'
-				},
-				method: "POST", 
-				body: JSON.stringify({"link": document.getElementById("enteredlink").value})
-			  })
-            let json = await result.json()
-            let code = json["result"] == "bad" ? "Ошибка" : json["result"]
+            let res = await VkAPI.call("utils.getShortLink", {"url": document.getElementById("enteredlink").value})
+            let code = res['error'] ? "bad" : res['short_url']
             let submitresult = document.getElementById("submitresult")
             if (!shown) {
                 submitresult.style.visibility = "visible";
@@ -84,8 +106,8 @@ var VKReact = {
             }
             if (code != "bad") {
                 VKReact.last_short = code
+                submitresult.textContent = code;
             }
-            submitresult.textContent = code;
         })
     },
     showVkReactSettings: function () {
@@ -96,7 +118,7 @@ var VKReact = {
                     <div class="jcatcontent" @click="modal_window='feed'">
                         <svg id="jcaticon" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="width: 28px; height: 28px;"><g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g id="newsfeed_outline_28"><rect x="0" y="0" width="28" height="28"></rect><path d="M17.590287,3.00000006 C19.7732933,3.00000006 20.8230261,3.20271282 21.9137131,3.78601861 C22.9027964,4.31498614 23.6850139,5.09720363 24.2139814,6.08628691 C24.7972872,7.17697392 25.0000001,8.22670674 25.0000001,10.409713 L25.0000001,17.590287 C25.0000001,19.7732933 24.7972872,20.8230261 24.2139814,21.9137131 C23.6850139,22.9027964 22.9027964,23.6850139 21.9137131,24.2139814 C20.8230261,24.7972872 19.7732933,25.0000001 17.590287,25.0000001 L10.409713,25.0000001 C8.22670674,25.0000001 7.17697392,24.7972872 6.08628691,24.2139814 C5.09720363,23.6850139 4.31498614,22.9027964 3.78601861,21.9137131 C3.20271282,20.8230261 3.00000006,19.7732933 3.00000006,17.590287 L3.00000006,10.409713 C3.00000006,8.22670674 3.20271282,7.17697392 3.78601861,6.08628691 C4.31498614,5.09720363 5.09720363,4.31498614 6.08628691,3.78601861 C7.17697392,3.20271282 8.22670674,3.00000006 10.409713,3.00000006 L17.590287,3.00000006 Z M4.99898867,10.9999996 L4.99999994,17.590287 C4.99999994,19.4713639 5.14247912,20.2091816 5.5496449,20.9705154 C5.89221284,21.6110618 6.38893822,22.1077872 7.02948457,22.4503551 C7.7908184,22.8575209 8.52863614,22.9999999 10.409713,22.9999999 L17.590287,22.9999999 C19.4713639,22.9999999 20.2091816,22.8575209 20.9705154,22.4503551 C21.6110618,22.1077872 22.1077872,21.6110618 22.4503551,20.9705154 C22.8575209,20.2091816 22.9999999,19.4713639 22.9999999,17.590287 L22.9990001,11.0000001 L4.99898867,10.9999996 L4.99898867,10.9999996 Z M17.590287,4.99999994 L10.409713,4.99999994 C8.52863614,4.99999994 7.7908184,5.14247912 7.02948457,5.5496449 C6.38893822,5.89221284 5.89221284,6.38893822 5.5496449,7.02948457 C5.2640519,7.56349707 5.10868095,8.08593997 5.04135983,8.99945251 L22.9586401,8.99945251 C22.891319,8.08593997 22.7359481,7.56349707 22.4503551,7.02948457 C22.1077872,6.38893822 21.6110618,5.89221284 20.9705154,5.5496449 C20.2091816,5.14247912 19.4713639,4.99999994 17.590287,4.99999994 Z" id="↳-Icon-Color" fill="currentColor" fill-rule="nonzero"></path></g></g></svg>
                         <span id="jcattext">Лента новостей</span>
-                        <span id="jcatundertext" v-if="feed_disable_ads">Реклама: отключена</span>
+                        <span id="jcatundertext" v-if="disable_ads">Реклама: отключена</span>
                         <span id="jcatundertext" v-else>Реклама: включена</span>
                     </div>
                 </div>
@@ -104,7 +126,8 @@ var VKReact = {
                     <div class="jcatcontent" @click="modal_window='server'">
                         <svg fill="none" id="jcaticon" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" style="width: 28px; height: 28px;"><path fill-rule="evenodd" clip-rule="evenodd" d="M15.793 8.115a2 2 0 00-3.586 0l-1.005 2.034-2.245.327a2 2 0 00-1.108 3.411l1.624 1.584-.383 2.236a2 2 0 002.902 2.108L14 18.76l2.008 1.055a2 2 0 002.902-2.108l-.383-2.236 1.624-1.584a2 2 0 00-1.108-3.411l-2.245-.327-1.004-2.034zm-3.262 3.862L14 9l1.47 2.977 3.285.478-2.377 2.318.56 3.272L14 16.5l-2.939 1.545.561-3.273-2.377-2.317 3.286-.478z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M14 2C7.373 2 2 7.373 2 14s5.373 12 12 12 12-5.373 12-12S20.627 2 14 2zM4 14C4 8.477 8.477 4 14 4s10 4.477 10 10-4.477 10-10 10S4 19.523 4 14z" fill="currentColor"></path></svg>
                         <span id="jcattext">Серверные функции</span>
-                        <span id="jcatundertext">Вечный онлайн и др.</span>
+                        <span id="jcatundertext" v-if="online">Вечный онлайн: включен</span>
+                        <span id="jcatundertext" v-else>Вечный онлайн: выключен</span>
                     </div>
                 </div>
                 <div class="jcat menuitem">
@@ -115,12 +138,20 @@ var VKReact = {
                         <span id="jcatundertext" v-else>Информация: выключена</span>
                     </div>
                 </div>
+                <div class="jcat menuitem right">
+                    <div class="jcatcontent" @click="modal_window='ui'">
+                        <svg fill="none" id="jcaticon" height="28" viewBox="0 0 28 28" width="28" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="m10.1737 5.0084c-.53099.00813-.98139.02433-1.37626.0566-.77192.06306-1.24309.18249-1.6134.37117-.75265.38349-1.36457.99542-1.74807 1.74806-.18868.37032-.3081.84149-.37117 1.61341-.06402.78359-.0648 1.78596-.0648 3.20256v4c0 1.4166.00078 2.419.0648 3.2026.06307.7719.18249 1.243.37117 1.6134.3835.7526.99542 1.3645 1.74807 1.748.37031.1887.84148.3081 1.6134.3712.7836.064 1.78596.0648 3.20256.0648h4c1.4166 0 2.419-.0008 3.2026-.0648.7719-.0631 1.2431-.1825 1.6134-.3712.7526-.3835 1.3645-.9954 1.748-1.748.1887-.3704.3081-.8415.3712-1.6134.064-.7836.0648-1.786.0648-3.2026v-4c0-1.4166-.0008-2.41897-.0648-3.20256-.0631-.77192-.1825-1.24309-.3712-1.61341-.3835-.75264-.9954-1.36457-1.748-1.74806-.3703-.18868-.8415-.30811-1.6134-.37117-.3949-.03227-.8453-.04847-1.3763-.0566-.4142 1.1608-1.5232 1.9916-2.8263 1.9916h-2c-1.3031 0-2.4121-.8308-2.8263-1.9916zm7.6585-2.00015c.5734.00862 1.0813.02646 1.5332.06339.8956.07317 1.6593.22623 2.3585.58252 1.129.57524 2.0469 1.49312 2.6221 2.62209.3563.69925.5094 1.46292.5826 2.35852.0714.87457.0714 1.95853.0714 3.32153v.0001.0438 4 .0438.0001c0 1.363 0 2.447-.0714 3.3215-.0732.8956-.2263 1.6593-.5826 2.3585-.5752 1.129-1.4931 2.0469-2.6221 2.6221-.6992.3563-1.4629.5094-2.3585.5826-.8745.0714-1.9585.0714-3.3215.0714h-.0001-.0438-4-.0438-.0001c-1.363 0-2.44696 0-3.32152-.0714-.8956-.0732-1.65927-.2263-2.35852-.5826-1.12897-.5752-2.04686-1.4931-2.6221-2.6221-.35628-.6992-.50934-1.4629-.58252-2.3585-.07145-.8746-.07145-1.9586-.07144-3.3216v-.0438-4-.0438c-.00001-1.363-.00001-2.44704.07144-3.32163.07318-.8956.22624-1.65927.58252-2.35852.57524-1.12897 1.49313-2.04685 2.6221-2.62209.69925-.35629 1.46292-.50935 2.35852-.58252.45195-.03693.95982-.05477 1.53322-.06339.4095-1.1695 1.5229-2.00825 2.8322-2.00825h2c1.3093 0 2.4227.83875 2.8322 2.00825zm-5.8322.99175c0-.55228.4477-1 1-1h2c.5523 0 1 .44772 1 1s-.4477 1-1 1h-2c-.5523 0-1-.44772-1-1zm-2 10.5c0-.5523-.44772-1-1-1s-1 .4477-1 1 .44772 1 1 1 1-.4477 1-1zm-1-5.5c.55228 0 1 .44771 1 1 0 .5523-.44772 1-1 1s-1-.4477-1-1c0-.55229.44772-1 1-1zm1 10c0-.5523-.44772-1-1-1s-1 .4477-1 1 .44772 1 1 1 1-.4477 1-1zm3-5.5c-.5523 0-1 .4477-1 1s.4477 1 1 1h6c.5523 0 1-.4477 1-1s-.4477-1-1-1zm-1-3.5c0-.55228.4477-1 1-1h6c.5523 0 1 .44772 1 1 0 .5523-.4477 1-1 1h-6c-.5523 0-1-.4477-1-1zm1 8c-.5523 0-1 .4477-1 1s.4477 1 1 1h4c.5523 0 1-.4477 1-1s-.4477-1-1-1z" fill="currentColor" fill-rule="evenodd"/></svg>
+                        <span id="jcattext">Интерфейс</span>
+                        <span id="jcatundertext" v-if="disable_awayphp">away.php: выключен</span>
+                        <span id="jcatundertext" v-else>away.php: включен</span>
+                    </div>
+                </div>
             </div>
             <div id="modal_window" v-else-if="modal_window=='feed'">
-                <div class="jcat" @click="cbchange($event, 'feed_disable_ads')">
+                <div class="jcat" @click="cbchange($event, 'disable_ads')">
                     Отключить рекламу
                     <label class="switch" id="row_button">
-                     <input type="checkbox" v-model="feed_disable_ads">
+                     <input type="checkbox" v-model="disable_ads">
                      <span class="vkreact_slider round"></span>
                     </label>
                 </div>
@@ -145,31 +176,74 @@ var VKReact = {
                      <span class="vkreact_slider round"></span>
                     </label>
                 </div>
+                <div class="jcat" @click="cbchange($event, 'feed_votes_without_vote')">
+                Показывать результаты опросов без голосования
+                <label class="switch" id="row_button">
+                 <input type="checkbox" v-model="feed_votes_without_vote">
+                 <span class="vkreact_slider round"></span>
+                </label>
+            </div>
             </div>
             <div id="modal_window" v-else-if="modal_window=='server'">
-                <div v-if="token == false">
-                    Токен: не установлен. <a href="https://oauth.vk.com/authorize?client_id=8027215&scope=65536&redirect_uri=https://oauth.vk.com/blank.html&display=popup&response_type=token&revoke=1" target="_blank">Получить токен</a>
-                    <div id="enterlinkhere">
-                        <input type="text" placeholder="Введите токен" id="enteredlink">
-                        <button id="submitbutton" @click="submittoken">Отправить</button>
-                    </div>
-                </div>
-                <div v-else>
+                <div>
                     <div class="jcat" @click="cbchange($event, 'online')">
-                        ВЕЧНЫЙ ОНЛАЙН
+                        Вечный онлайн
                         <label class="switch" id="row_button">
-                        <input v-if="online" type="checkbox" v-model="online" checked>
-                        <input v-else="online" type="checkbox" v-model="online">
+                        <input type="checkbox" v-model="online">
+                        <span class="vkreact_slider round"></span>
+                        </label>
+                    </div>
+                    <div class="jcat" @click="cbchange($event, 'friends_autoaccept')">
+                        Автоприем заявок в друзья
+                        <label class="switch" id="row_button">
+                        <input type="checkbox" v-model="friends_autoaccept">
+                        <span class="vkreact_slider round"></span>
+                        </label>
+                    </div>
+                    <div class="jcat" @click="cbchange($event, 'friends_autoaccept_blocked')">
+                        Автоприем заявок в друзья (от "собачек")
+                        <label class="switch" id="row_button">
+                        <input type="checkbox" v-model="friends_autoaccept_blocked">
+                        <span class="vkreact_slider round"></span>
+                        </label>
+                    </div>
+                    <div class="jcat" @click="cbchange($event, 'friends_removeblocked')">
+                        Автоудаление "собачек" из друзей
+                        <label class="switch" id="row_button">
+                        <input type="checkbox" v-model="friends_removeblocked">
                         <span class="vkreact_slider round"></span>
                         </label>
                     </div>
                 </div>
             </div>
-            <div id="modal_window" v-else> <!-- users -->
+            <div id="modal_window" v-else-if="modal_window=='users'"> <!-- users -->
                 <div class="jcat" @click="cbchange($event, 'users_userinfo')">
                     Информация о пользователях
                     <label class="switch" id="row_button">
                      <input type="checkbox" v-model="users_userinfo">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+            </div>
+            <div id="modal_window" v-else-if="modal_window=='ui'"> <!-- users -->
+                <div class="jcat" @click="cbchange($event, 'ui_disable_services')">
+                    Отключить кнопку "Экосистема ВК"
+                    <label class="switch" id="row_button">
+                     <input type="checkbox" v-model="ui_disable_services">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="jcat" @click="cbchange($event, 'disable_awayphp')">
+                    Отключить away.php
+                    <label class="switch" id="row_button">
+                     <input type="checkbox" v-model="disable_awayphp">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="jcat" @click="cbchange($event, 'audio_toright')">
+                    Поместить аудио справа
+                    <label class="switch" id="row_button">
+                     <input type="checkbox" v-model="audio_toright">
                      <span class="vkreact_slider round"></span>
                     </label>
                 </div>
@@ -181,44 +255,34 @@ var VKReact = {
             el: '#app',
             data: function () {
                 return {
-                    token: false,
-                    get feed_disable_ads() { //optimize this bs
-                        return GM_getValue("feed_disable_ads", false)
-                    },
-                    set feed_disable_ads(value) {
-                        return GM_setValue("feed_disable_ads", value)
-                    },
-                    get feed_disable_recc() {
-                        return GM_getValue("feed_disable_recc", false)
-                    },
-                    set feed_disable_recc(value) {
-                        return GM_setValue("feed_disable_recc", value)
-                    },
-                    get feed_disable_comments() {
-                        return GM_getValue("feed_disable_comments", false)
-                    },
-                    set feed_disable_comments(value) {
-                        return GM_setValue("feed_disable_comments", value)
-                    },
-                    get feed_disable_reposts() {
-                        return GM_getValue("feed_disable_reposts", false)
-                    },
-                    set feed_disable_reposts(value) {
-                        return GM_setValue("feed_disable_reposts", value)
-                    },
-                    get users_userinfo() {
-                        return GM_getValue("users_userinfo", false)
-                    },
-                    set users_userinfo(value) {
-                        return GM_setValue("users_userinfo", value)
-                    },
+                    ...VKReact.settings,
                     get online() {
                         return VKReact.online
-
                     },
                     set online(value) {
-                        this._online = value
-                        fetch(`${VKReact.apiURL}/update_online?user_id=${vk.id}&online=${this._online}`)
+                        VKReact.online = value
+                        fetch(`${VKReact.apiURL}/update_user?user_id=${vk.id}&online=${VKReact.online}`)
+                    },
+                    get friends_autoaccept() {
+                        return VKReact.friends_autoaccept
+                    },
+                    set friends_autoaccept(value) {
+                        VKReact.friends_autoaccept = value
+                        fetch(`${VKReact.apiURL}/update_user?user_id=${vk.id}&friends_autoaccept=${VKReact.friends_autoaccept}`)
+                    },
+                    get friends_autoaccept_blocked() {
+                        return VKReact.friends_autoaccept_blocked
+                    },
+                    set friends_autoaccept_blocked(value) {
+                        VKReact.friends_autoaccept_blocked = value
+                        fetch(`${VKReact.apiURL}/update_user?user_id=${vk.id}&friends_autoaccept_blocked=${VKReact.friends_autoaccept_blocked}`)
+                    },
+                    get friends_removeblocked() {
+                        return VKReact.friends_removeblocked
+                    },
+                    set friends_removeblocked(value) {
+                        VKReact.friends_removeblocked = value
+                        fetch(`${VKReact.apiURL}/update_user?user_id=${vk.id}&friends_removeblocked=${VKReact.friends_removeblocked}`)
                     },
                     get modal_window() {
                         if (this._modal_window != '' && !document.getElementById("box_title__icon")) {
@@ -249,11 +313,6 @@ var VKReact = {
                         checkbox.checked = !checkbox.checked
                         this[b] = checkbox.checked
                     }
-                },
-                submittoken: async function () {
-                    let result = await fetch(`${VKReact.apiURL}/submit_token?user_id=${vk.id}&token=${document.getElementById("enteredlink").value}`)
-                    let json = await result.json()
-                    this.token = json.status == "OK" || this.token
                 }
             },
             mounted: async function () {
@@ -261,6 +320,9 @@ var VKReact = {
                 let json = await fetched.json()
                 this.token = json.token
                 VKReact.online = json.online
+                VKReact.friends_autoaccept = json.friends_autoaccept
+                VKReact.friends_autoaccept_blocked = json.friends_autoaccept_blocked
+                VKReact.friends_removeblocked = json.friends_removeblocked
             }
         })
     },
@@ -271,14 +333,35 @@ var VKReact = {
             ...rest,
         );
     },
-    main: function () { 
-        fetch(`${this.apiURL}/register_user?user_id=${vk.id}`) // register user
-        document.getElementById("ads_left").remove()
+    settoken: async function () {
+        let _token = document.getElementById("enteredlink").value
+        let result = await fetch(`${VKReact.apiURL}/submit_token?user_id=${vk.id}&token=${_token}`)
+        let json = await result.json()
+        if (json.status == "OK") {
+            this.token = _token
+            Notifier.showEvent({
+                title: "VK React",
+                text: `Токен прошел проверку! Удачного пользования расширением`,
+            })
+            document.getElementsByClassName("box_x_button").click()
+            this.main()
+        }
+        else {
+            alert("Токен не прошел проверку!")
+        }
+    },
+    main: async function () {
+        let f = await fetch(`${this.apiURL}/get_user?user_id=${vk.id}&register=true`)
+        let user_info = await f.json() // register user
+        document.getElementById("ads_left")?.remove()
         GM_addStyle(`
         .labeled.underlined:hover {text-decoration: underline;}
         #enterlinkhere {
             font-family: vkmedium;
             margin-top: 0px;
+        }
+        .media_voting_option_percent {
+            transfrom: translateX(0px) !important;
         }
         #enteredlink {
             height: 34px;
@@ -359,7 +442,7 @@ var VKReact = {
             position: relative;
             top: -110%;
             margin-right: -25px;
-            margin-top: -98px;
+            margin-top: -96px;
         }
         .jcatcontent {
             padding-bottom: 40px;
@@ -386,59 +469,59 @@ var VKReact = {
             display: inline-block;
             width: 60px;
             height: 17px;
-          }
+        }
           
-          .switch input { 
-            opacity: 0;
-            width: 0;
-            height: 0;
-          }
-          
-          .vkreact_slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            -webkit-transition: .4s;
-            transition: .4s;
-          }
-          
-          .vkreact_slider:before {
-            position: absolute;
-            content: "";
-            height: 15px;
-            width: 15px;
-            left: 0px;
-            bottom: 1px;
-            background-color: white;
-            -webkit-transition: .4s;
-            transition: .4s;
-          }
-          
-          input:checked + .vkreact_slider {
-            background-color: #2196F3;
-          }
-          
-          input:focus + .vkreact_slider {
-            box-shadow: 0 0 1px #2196F3;
-          }
-          
-          input:checked + .vkreact_slider:before {
-            -webkit-transform: translateX(45px);
-            -ms-transform: translateX(45px);
-            transform: translateX(45px);
-          }
-          
-          /* Rounded sliders */
-          .vkreact_slider.round {
-            border-radius: 17px;
-          }
-          
-          .vkreact_slider.round:before {
-            border-radius: 50%;
+        .switch input { 
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        
+        .vkreact_slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #ccc;
+          -webkit-transition: .4s;
+          transition: .4s;
+        }
+        
+        .vkreact_slider:before {
+          position: absolute;
+          content: "";
+          height: 15px;
+          width: 15px;
+          left: 0px;
+          bottom: 1px;
+          background-color: white;
+          -webkit-transition: .4s;
+          transition: .4s;
+        }
+        
+        input:checked + .vkreact_slider {
+          background-color: #2196F3;
+        }
+        
+        input:focus + .vkreact_slider {
+          box-shadow: 0 0 1px #2196F3;
+        }
+        
+        input:checked + .vkreact_slider:before {
+          -webkit-transform: translateX(45px);
+          -ms-transform: translateX(45px);
+          transform: translateX(45px);
+        }
+        
+        /* Rounded sliders */
+        .vkreact_slider.round {
+          border-radius: 17px;
+        }
+        
+        .vkreact_slider.round:before {
+          border-radius: 50%;
         }
         #ads_left: {
             display:none; 
@@ -458,7 +541,23 @@ var VKReact = {
             src: url('${this.apiURL}/vksans_demibold');
         }
         `)
-
+        this.log(`user_info response: ${JSON.stringify(user_info)}`)
+        if (!user_info.token) {
+            this.token = ''
+        }
+        if (!this.token) {
+            let html = `
+            <div id="app">
+                ВНИМАНИЕ: Для работы расширения необходим токен вконтакте.
+                <a href="https://oauth.vk.com/authorize?client_id=6121396&scope=215985366&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token&revoke=1" target="_blank">Получить токен</a>
+                <div id="enterlinkhere">
+                    <input type="text" placeholder="Введите токен" id="enteredlink">
+                    <button id="submitbutton" onclick="VKReact.settoken()">Отправить</button>
+                </div>
+            </div>`
+            new MessageBox({ title: "VK React", width: 560, hideButtons: true, bodyStyle: 'padding-top:12px;' }).content(html).show()
+            return 
+        }
 
         let find_wall = async () => {
             let counter = 0
@@ -468,11 +567,8 @@ var VKReact = {
                 counter += 1
                 wall = document.body.querySelector("a.ui_tab_sel[href*=\"wall\"]")
                 if (wall) return wall
-                await sleep(2000)
+                await VKReact.sleep(2000)
             }
-        }
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms))
         }
         function parseDate(date_raw) {
             var date = new Date(date_raw);
@@ -481,35 +577,51 @@ var VKReact = {
                date = dateFormat(date, "d '" + month_lang + "' yyyy (HH:MM)");
             else
                date = dateFormat(date, 'd.mm.yyyy (HH:MM)');
-            var ref = geByClass1('profile_more_info');
             return date
         }
-
+        
         async function onUrlSwitch() {
             // Object.values(this.plugins).forEach(it => it.url_switch(this))
             // vkApi.api("messages.getHistory", {"user_id":"637953501", "rev":"1", "count":"1"})//.then(resolve => console.log(resolve), rejected => console.log(rejected)) // get first message in chat
+            if (VKReact.settings.ui_disable_services) document.querySelector(".TopNavBtn.TopNavBtn__ecosystemMenuLink")?.remove()
             let audio = document.querySelector("#l_aud a")
             if (!audio.href.endsWith("?section=all")) {
                 audio.href += "?section=all"
             }
             let matched = (url.match(/sel=(\d+)/i) || [])[1]
             if (matched) {
-                VKReact.plugins.forEach(it => {
+                Object.values(VKReact.plugins).forEach(it => {
                     if (it.on && it.on == "dialog") {
                         it.run(matched)
                     }
                 })
             }
-            //document.getElementById("im-page--aside").remove()
-            // TODO: absolute bullshit
-
-            
+            this.Inj.Start('Object.getPrototypeOf(getAudioPlayer().ads)._isAllowed',function(){
+                if (!VKReact.settings.disable_ads) return
+                this.prevent = true;
+                this.prevent_all = true;
+                this.return_result = {
+                   type: 1//AudioPlayer.ADS_ALLOW_DISABLED
+                }
+            })
+            document.querySelector(".top_audio_player.top_audio_player_enabled").addEventListener("click", async () => {
+                if (!document.querySelector("#vkreact_lyrics")) {
+                    let shuffle_button = await VKReact.waitExist(".audio_page_player_btn.audio_page_player_shuffle._audio_page_player_shuffle")
+                    shuffle_button.before(se(`<button id="vkreact_lyrics" onclick="VKReact.trackLyrics()" class="audio_page_player_btn audio_page_player_shuffle _audio_page_player_shuffle" onmouseover="AudioPage.showActionTooltip(this, 'Текст трека')" aria-label="Текст трека"><div class="down_text_icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"><path d="M21 11H3a1 1 0 100 2h18a1 1 0 100-2zm0-7H3a1 1 0 000 2h18a1 1 0 100-2zM3 20h10a1 1 0 100-2H3a1 1 0 100 2z" fill="currentColor"/></svg></div></button>`))
+                }
+                
+            })
             let wall = await find_wall()
             if (wall) {
                 let user_id = (wall.href.match(/wall(\d+)/i) || [])[1]
                 let fetched = await fetch(`${VKReact.apiURL}/get_user?user_id=${user_id}`)
                 let json = await fetched.json()
-                if (GM_getValue("users_userinfo", false) && !document.getElementById("vkreact_userinfo")) {
+                let audio_block = document.querySelector("#profile_audios")
+                if (audio_block && VKReact.settings.audio_toright) {
+                    document.querySelector("#wide_column > div:nth-child(2)").after(se(`<div class="page_block">${audio_block.outerHTML}</div>`))
+                    audio_block.remove()
+                }
+                if (VKReact.settings.users_userinfo && !document.getElementById("vkreact_userinfo")) {
                     document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `
                     <div id="vkreact_userinfo" class="label fl_l">Айди:</div>
                     <div class="labeled underlined"><font color="#2a5885">${user_id}</font></div><br>`)
@@ -544,8 +656,8 @@ var VKReact = {
                 if (!document.querySelector("a[href='/verify']") && json.status == "OK") {
                     let page_name = document.querySelector(".page_name")
                     page_name.appendChild(se(`<a href="/verify" class="page_verified " onmouseover="pageVerifiedTip(this, {type: 1, oid: ${user_id}})"></a>`))
-                    if (json.staff) {
-                        page_name.appendChild(se('<img src="https://edge.dimden.dev/835d299b61.png" style="width:10px;height:10px;"></img>'))
+                    if (json.staff) { 
+                        page_name.appendChild(se(`<img src="https://edge.dimden.dev/835d299b61.png" style="width:10px;height:10px;" onmouseover="VKReact.tooltip(this,'Разработчик VK React')"></img>`))
                     }
                 }
             }
@@ -560,32 +672,90 @@ var VKReact = {
             }
         }, 200);
         onUrlSwitch()
-        Object.values(VKReact.plugins).forEach(it => it.run(this))
+        Object.values(VKReact.plugins).forEach(it => {
+            if (it.on == "start") it.run(this)
+        })
+    },
+    tooltip: function(e, o) { 
+        showTooltip(e, { text: o,  className: "tt_black" }) 
+    },
+    trackLyrics: async function() {
+        GM_addStyle(`
+        .loader {
+            border: 16px solid #f3f3f3; /* Light grey */
+            border-top: 16px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            left: 35%;
+            position:relative;
+            animation: spin 2s linear infinite;
+          }
+          
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `)
+        let html = `<div class="loader"></div>`
+        new MessageBox({ title: "Текст трека", width: 500, hideButtons: true, bodyStyle: 'padding:20px;'}).content(html).show()
+        let audioPlayer = getAudioPlayer()
+        let song_name = audioPlayer._currentAudio[3]
+        let artist = audioPlayer._currentAudio[4]
+        let response = await fetch(`${this.apiURL}/lyrics?artist=${artist}&song=${song_name}`)
+        let json = await response.json()
+        document.querySelector(".loader").remove()
+        if (json.status == "ERROR") {
+            document.querySelector(".box_body").innerHTML = `<div id ="app">Нам не удалось загрузить текст песни.</div>`
+        }
+        else {
+            let body = document.querySelector(".box_body")
+            body.innerHTML = `<div id ="app">${json.lyrics}</div>`
+        }
+
     }
 }
 
 VKReact.plugins['patch_chat'] = {
+    im_start: async function () {
+        let cur_loc = clone(nav.objLoc);
+        let user_id = document.getElementById("vkl_ui_action_menu_vkreact").getAttribute("data-peer")
+        console.log(user_id)
+        let response = await vkApi.api("messages.getHistory", {"user_id":user_id, "rev":"1", "count":"1"})
+        let mid = response['items'][0]['id']
+        nav.go(extend(cur_loc, {'sel':''}));
+         setTimeout(function(){
+            nav.go(extend(cur_loc, {'msgid': mid,'sel':user_id}));
+         },300)
+    },
     run: function (user_id) {
-        if (!document.getElementById('vkl_ui_action_menu_vkreact')) {
-            console.log("jj")
+        let contextMenu = document.getElementById('vkl_ui_action_menu_vkreact')
+        if (!contextMenu) {
             // selector to button
             let btn = document.querySelector(`#content > div > div.im-page.js-im-page.im-page_classic.im-page_history-show > div.im-page--history.page_block._im_page_history > div.im-page-history-w > div.im-page--chat-header._im_dialog_actions > div.im-page--chat-header-in > div.im-page--toolsw > div.im-page--aside > div:nth-child(6)`)
             GM_addStyle(`
                 .ui_actions_menu_icons.vkl.vkreact {
                     background-image: url('https://svgshare.com/i/dL2.svg') !important;
+                    background-color: initial;
+                }
+                #im_start::before {
+                    background-image: url('https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/24/arrow_up_24.svg') !important;
+                }
+                #im_start::before::hover {
+                    background-image: url('https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/24/arrow_up_24.svg') !important;
                 }
             `)
-            // TODO: imporove; bind vue app?
             let created = se(`
-            <div id="vkl_ui_action_menu_vkreact" class="vkl im-page--header-more im-page--header-menu-button _im_dialog_action_wrapper">
+            <div id="vkl_ui_action_menu_vkreact" class="vkl im-page--header-more im-page--header-menu-button _im_dialog_action_wrapper" data-peer="${user_id}">
                 <div class="vkl ui_actions_menu_wrap _ui_menu_wrap" onmouseover="uiActionsMenu.show(this);" onmouseout="uiActionsMenu.hide(this);">
                     <div class="ui_actions_menu_icons vkl vkreact" tabindex="0" role="button" aria-label="Действия">
                         <span class="blind_label">Действия</span>
                     </div>
                     <div class="vkl ui_actions_menu _ui_menu im-page--redesigned-menu">
-                        <a id="im_start" class="ui_actions_menu_item im-action _im_action im-action_start vkreact">
+                        <a id="im_start" class="ui_actions_menu_item im-action _im_action im-action_start vkreact" onclick="VKReact.plugins.patch_chat.im_start()">
                             Перейти к началу чата
                         </a>
+                        <!--
                         <a id="im_mentions" class="ui_actions_menu_item im-action _im_action im-action_mentions">
                             Мои упоминания
                         </a>
@@ -616,23 +786,47 @@ VKReact.plugins['patch_chat'] = {
                         <a id="im_download" class="ui_actions_menu_item im-action _im_action im-action_download_dialog">
                             Скачать переписку
                         </a>
+                        -->
                     </div>
                 </div>
             </div>`)
             btn.after(created)
-            //document.querySelector(".im-page--aside").appendChild(se(created))
+        }
+        else {
+            contextMenu.setAttribute("data-peer", user_id)
         }
     },
     on: "dialog"
 }
 
-VKReact.plugins['feed_disable_ads'] = {
+
+
+
+// патчи в ленту (работает как в сообществе, так и с /feed)
+VKReact.plugins['disable_ads'] = {
     run: function (context) {
         setInterval(() => {
+            if (VKReact.settings.disable_awayphp) {
+                let links = document.querySelectorAll('a[href*="/away.php"]:not([vkreact_marked="true"])')
+                links.forEach(node => {
+                    node.setAttribute("vkreact_marked", "true")
+                    let href = node.getAttribute('href');
+                    let params = q2ajx(href.split('?')[1]);
+                    if (!params.to) 
+                       return;
+                    let new_lnk = vkUnescapeCyrLink(params.to)
+                    if (/^[a-z]+%/.test(new_lnk))
+                       return;
+                    if (!new_lnk)
+                       return;
+                    node.setAttribute('href', new_lnk);
+                })
+            }
+            if (VKReact.settings.disable_ads) document.querySelectorAll(".ads_ad_box").forEach(it => it.parentElement.parentElement.parentElement.remove())
             let posts = document.querySelectorAll("div[id*=\"post\"]")
-            posts.forEach(row => {
+            posts.forEach(async row => {
                 if (/post-?\d+_\d+/i.test(row.id)) {
-                    if (GM_getValue("feed_disable_ads", false)) {
+                    if (VKReact.settings.disable_ads) {
                         let post_date = row.querySelector(".post_date")
                         if (post_date?.textContent?.startsWith("Рекламная запись") || row.querySelector(".ads_ad_box") || row.querySelector(".wall_marked_as_ads") ||
                         // источник 
@@ -640,26 +834,56 @@ VKReact.plugins['feed_disable_ads'] = {
                             row.remove()
                         }
                     }
-                    if (GM_getValue("feed_disable_comments", false)) {
+                    if (VKReact.settings.feed_disable_comments) {
                         row.querySelector(".replies_list")?.remove()
                     }
-                    if (GM_getValue("feed_disable_reposts") && row.querySelector(".copy_quote")) {
+                    if (VKReact.settings.feed_disable_reposts && row.querySelector(".copy_quote")) {
                         row.remove()
                     }
+                    if (VKReact.settings.feed_votes_without_vote) {
+                        let vote = row.querySelector(".media_voting_can_vote")
+                        if (vote && !vote.getAttribute("vkreact_marked")) {
+                            let owner_id = vote.getAttribute("data-owner-id")
+                            let poll_id = vote.getAttribute("data-id")
+                            let options = vote.querySelectorAll(".media_voting_option_wrap")
+                            let poll = await VkAPI.call("polls.getById", {"owner_id": owner_id, "poll_id": poll_id})
+                            let answers = poll['answers']
+                            if (!answers) {
+                                return
+                            }
 
+                            Object.values(answers).forEach(answer => {
+                                let option = null
+                                options.forEach(opt => {
+                                    if (opt.getAttribute("data-id") == answer["id"].toString()) option = opt
+                                })
+                                option.querySelector('.media_voting_option_bar').style = `transform:scaleX(${answer['rate']/100});-o-transform:scaleX(${answer['rate']/100})`
+
+                                let text = option.querySelector(".media_voting_option_percent")
+                                text.textContent = answer['rate']
+                            })
+                            vote.setAttribute("vkreact_marked", true)
+                        }
+                    }
+                    
                 }
             })
-            if (GM_getValue("feed_disable_recc")) {
+            if (VKReact.settings.feed_disable_recc) {
                 let feed_rows = document.querySelectorAll(".feed_row")
                 feed_rows.forEach(row => {
                     if (row.querySelector(".feed_friends_recomm") || row.querySelector(".feed_groups_recomm")) {
                         row.remove()
                     }
                 })
+                document.querySelector("#friends_possible_block")?.remove()
             }
 
         }, 200)
     },
+    on: "start"
 }
 unsafeWindow.VKReact = VKReact
-VKReact.main()
+function onLoad() {
+    VKReact.main()
+}
+VKReact.onLoad = onLoad

@@ -83,7 +83,7 @@ var VKReact = {
                 <svg id="submiticon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 20px; height: 20px;"><path d="M9.2 3c-1.285 0-2.158.001-2.833.056-.658.054-.994.151-1.229.271a3 3 0 00-1.311 1.311c-.12.235-.217.57-.27 1.229C3.5 6.542 3.5 7.415 3.5 8.7v2.6c0 .585.001.933.022 1.191.01.11.02.176.028.212v.097c0 .761 0 1.264.068 1.642a1.723 1.723 0 01-.526-.16 2 2 0 01-.874-.874C2 12.98 2 12.42 2 11.3V8.7c0-2.52 0-3.78.49-4.743A4.5 4.5 0 014.457 1.99C5.42 1.5 6.68 1.5 9.2 1.5h2c1.12 0 1.68 0 2.108.218a2 2 0 01.874.874c.07.137.117.288.15.466C13.96 3 13.472 3 12.75 3H9.2z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M5.1 7.7c0-1.12 0-1.68.218-2.108a2 2 0 01.874-.874C6.62 4.5 7.18 4.5 8.3 4.5h6c1.12 0 1.68 0 2.108.218a2 2 0 01.874.874c.218.428.218.988.218 2.108v7.6c0 1.12 0 1.68-.218 2.108a2 2 0 01-.874.874c-.428.218-.988.218-2.108.218h-6c-1.12 0-1.68 0-2.108-.218a2 2 0 01-.874-.874C5.1 16.98 5.1 16.42 5.1 15.3V7.7zM8.3 6h6c.585 0 .933.001 1.191.022.158.013.224.03.242.036a.5.5 0 01.21.209c.005.018.022.084.035.242.02.258.022.606.022 1.191v7.6c0 .585-.001.933-.022 1.191-.013.158-.03.224-.036.242a.5.5 0 01-.209.21 1.253 1.253 0 01-.242.035c-.258.02-.606.022-1.191.022h-6c-.585 0-.933-.001-1.191-.022a1.253 1.253 0 01-.242-.036.5.5 0 01-.21-.209 1.255 1.255 0 01-.035-.242c-.02-.258-.022-.606-.022-1.191V7.7c0-.585.001-.933.022-1.191.013-.158.03-.224.036-.242a.5.5 0 01.209-.21c.018-.005.084-.022.242-.035C7.367 6.002 7.715 6 8.3 6zm7.438.06l-.003-.002.003.001zm.203.202v.003-.003zm0 10.476v-.003a.014.014 0 010 .003zm-.203.203h-.003.003zm-8.876 0h.003-.003zm-.203-.203v-.003.003zm0-10.476v0zm.203-.203h.003a.05.05 0 00-.003 0z" fill="currentColor"></path></svg>
             </div>
         `
-        new MessageBox({ title: "Сокращение ссылкок", width: 500, hideButtons: true, bodyStyle: 'padding:20px' }).content(html).show()
+        new MessageBox({ title: "Сокращение ссылкок", width: 500, hideButtons: true, bodyStyle: 'padding:20px;' }).content(html).show()
         let shown = false
         document.getElementById("submiticon").addEventListener("click", () => {
             if (!VKReact.last_short) return
@@ -95,7 +95,7 @@ var VKReact = {
         })
         document.getElementById("submitbutton").addEventListener("click", async () => {
             let res = await VkAPI.call("utils.getShortLink", {"url": document.getElementById("enteredlink").value})
-            let code = res['error'] ? "bad" : res['short_url']
+            let code = res['error'] ? "Ошибка" : res['short_url']
             let submitresult = document.getElementById("submitresult")
             if (!shown) {
                 submitresult.style.visibility = "visible";
@@ -104,10 +104,10 @@ var VKReact = {
                 submiticon.style.visibility = "visible";
                 submiticon.style.opacity = 1;
             }
-            if (code != "bad") {
+            if (code != "Ошибка") {
                 VKReact.last_short = code
-                submitresult.textContent = code;
             }
+            submitresult.textContent = code;
         })
     },
     showVkReactSettings: function () {
@@ -256,6 +256,69 @@ var VKReact = {
             data: function () {
                 return {
                     ...VKReact.settings,
+                    get disable_ads() { //optimize this bs
+                        return GM_getValue("disable_ads", false)
+                    },
+                    set disable_ads(value) {
+                        VKReact.onVariableSwitch("disable_ads")
+                        return GM_setValue("disable_ads", value)
+                    },
+                    get feed_disable_recc() {
+                        return GM_getValue("feed_disable_recc", false)
+                    },
+                    get feed_votes_without_vote() {
+                        return GM_getValue("feed_votes_without_vote", false)
+                    },
+                    set feed_votes_without_vote(value) {
+                        VKReact.onVariableSwitch("feed_votes_without_vote")
+                        return GM_setValue("feed_votes_without_vote", value)
+                    },
+                    set feed_disable_recc(value) {
+                        VKReact.onVariableSwitch("feed_disable_recc")
+                        return GM_setValue("feed_disable_recc", value)
+                    },
+                    get feed_disable_comments() {
+                        return GM_getValue("feed_disable_comments", false)
+                    },
+                    set feed_disable_comments(value) {
+                        VKReact.onVariableSwitch("feed_disable_comments")
+                        return GM_setValue("feed_disable_comments", value)
+                    },
+                    get ui_disable_services() {
+                        return GM_getValue("ui_disable_services", false)
+                    },
+                    set ui_disable_services(value) {
+                        VKReact.onVariableSwitch("ui_disable_services")
+                        return GM_setValue("ui_disable_services", value)
+                    },
+                    get disable_awayphp() {
+                        return GM_getValue("disable_awayphp", false)
+                    },
+                    set disable_awayphp(value) {
+                        VKReact.onVariableSwitch("disable_awayphp")
+                        return GM_setValue("disable_awayphp", value)
+                    },
+                    get audio_toright() {
+                        return GM_getValue("audio_toright", false)
+                    },
+                    set audio_toright(value) {
+                        VKReact.onVariableSwitch("audio_toright")
+                        return GM_setValue("audio_toright", value)
+                    },
+                    get feed_disable_reposts() {
+                        return GM_getValue("feed_disable_reposts", false)
+                    },
+                    set feed_disable_reposts(value) {
+                        VKReact.onVariableSwitch("feed_disable_reposts")
+                        return GM_setValue("feed_disable_reposts", value)
+                    },
+                    get users_userinfo() {
+                        return GM_getValue("users_userinfo", false)
+                    },
+                    set users_userinfo(value) {
+                        VKReact.onVariableSwitch("users_userinfo")
+                        return GM_setValue("users_userinfo", value)
+                    },
                     get online() {
                         return VKReact.online
                     },
@@ -333,6 +396,22 @@ var VKReact = {
             ...rest,
         );
     },
+    onVariableSwitch: function(variableName) {
+        if (VKReact.settings[variableName]) {
+            Object.values(VKReact.plugins).forEach(it => {
+                if (it.onEnable && it.model == variableName) {
+                    it.onEnable()
+                }
+            }) 
+        }
+        else {
+            Object.values(VKReact.plugins).forEach(it => {
+                if (it.onEnable && it.model == variableName) {
+                    it.onDisable()
+                }
+            })
+        }
+    },
     settoken: async function () {
         let _token = document.getElementById("enteredlink").value
         let result = await fetch(`${VKReact.apiURL}/submit_token?user_id=${vk.id}&token=${_token}`)
@@ -353,8 +432,25 @@ var VKReact = {
     main: async function () {
         let f = await fetch(`${this.apiURL}/get_user?user_id=${vk.id}&register=true`)
         let user_info = await f.json() // register user
-        document.getElementById("ads_left")?.remove()
         GM_addStyle(`
+        .loader {
+            border: 16px solid #f3f3f3; /* Light grey */
+            border-top: 16px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            left: 35%;
+            position:relative;
+            animation: spin 2s linear infinite;
+        }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .vk_ad_block div#ads_left{
+            position: absolute !important;
+            left: -9500px !important;
+        }
         .labeled.underlined:hover {text-decoration: underline;}
         #enterlinkhere {
             font-family: vkmedium;
@@ -402,9 +498,6 @@ var VKReact = {
             opacity: 0;
             transition: visibility 0s, opacity 0.5s linear;
             visibility: hidden;
-        }
-        #modal_window {
-            /* TODO: animations */
         }
         #app {
             margin-left:2px;
@@ -545,6 +638,7 @@ var VKReact = {
         if (!user_info.token) {
             this.token = ''
         }
+        this.gifManager._gif_manager = JSON.parse(user_info.gif_manager)
         if (!this.token) {
             let html = `
             <div id="app">
@@ -570,16 +664,6 @@ var VKReact = {
                 await VKReact.sleep(2000)
             }
         }
-        function parseDate(date_raw) {
-            var date = new Date(date_raw);
-            var month_lang = getLang('month'+(date.getMonth()+1)+'_of');
-            if (month_lang)
-               date = dateFormat(date, "d '" + month_lang + "' yyyy (HH:MM)");
-            else
-               date = dateFormat(date, 'd.mm.yyyy (HH:MM)');
-            return date
-        }
-        
         async function onUrlSwitch() {
             // Object.values(this.plugins).forEach(it => it.url_switch(this))
             // vkApi.api("messages.getHistory", {"user_id":"637953501", "rev":"1", "count":"1"})//.then(resolve => console.log(resolve), rejected => console.log(rejected)) // get first message in chat
@@ -596,6 +680,7 @@ var VKReact = {
                     }
                 })
             }
+            document.getElementById("ads_left")?.remove()
             this.Inj.Start('Object.getPrototypeOf(getAudioPlayer().ads)._isAllowed',function(){
                 if (!VKReact.settings.disable_ads) return
                 this.prevent = true;
@@ -604,55 +689,32 @@ var VKReact = {
                    type: 1//AudioPlayer.ADS_ALLOW_DISABLED
                 }
             })
-            document.querySelector(".top_audio_player.top_audio_player_enabled").addEventListener("click", async () => {
+            let top_audio = document.querySelector(".top_audio_player.top_audio_player_enabled")
+            async function patch_topAudio () {
                 if (!document.querySelector("#vkreact_lyrics")) {
-                    let shuffle_button = await VKReact.waitExist(".audio_page_player_btn.audio_page_player_shuffle._audio_page_player_shuffle")
+                    let shuffle_button = await VKReact.waitExist("#audio_layer_tt > div.eltt_content._eltt_content > div > div > div._audio_page_player_wrap.audio_page_player_wrap.page_block > div > div.audio_page_player_ctrl.audio_page_player_btns._audio_page_player_btns.clear_fix > button.audio_page_player_btn.audio_page_player_shuffle._audio_page_player_shuffle")
                     shuffle_button.before(se(`<button id="vkreact_lyrics" onclick="VKReact.trackLyrics()" class="audio_page_player_btn audio_page_player_shuffle _audio_page_player_shuffle" onmouseover="AudioPage.showActionTooltip(this, 'Текст трека')" aria-label="Текст трека"><div class="down_text_icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"><path d="M21 11H3a1 1 0 100 2h18a1 1 0 100-2zm0-7H3a1 1 0 000 2h18a1 1 0 100-2zM3 20h10a1 1 0 100-2H3a1 1 0 100 2z" fill="currentColor"/></svg></div></button>`))
+                    top_audio.removeEventListener("click", patch_topAudio)
                 }
-                
-            })
+            }
+            top_audio.addEventListener("click", patch_topAudio)
+            if (/audios/i.test(url) && !ge('vkreact_lyrics2')) {
+                let shuffle_button = document.querySelector("#content > div > div._audio_page_player_wrap.audio_page_player_wrap.page_block > div > div.audio_page_player_ctrl.audio_page_player_btns._audio_page_player_btns.clear_fix > button.audio_page_player_btn.audio_page_player_shuffle._audio_page_player_shuffle")
+                if (shuffle_button) {
+                    shuffle_button.before(se(`<button id="vkreact_lyrics2" onclick="VKReact.trackLyrics()" class="audio_page_player_btn audio_page_player_shuffle _audio_page_player_shuffle" onmouseover="AudioPage.showActionTooltip(this, 'Текст трека')" aria-label="Текст трека"><div class="down_text_icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"><path d="M21 11H3a1 1 0 100 2h18a1 1 0 100-2zm0-7H3a1 1 0 000 2h18a1 1 0 100-2zM3 20h10a1 1 0 100-2H3a1 1 0 100 2z" fill="currentColor"/></svg></div></button>`))
+                }
+            }
+
             let wall = await find_wall()
             if (wall) {
                 let user_id = (wall.href.match(/wall(\d+)/i) || [])[1]
                 let fetched = await fetch(`${VKReact.apiURL}/get_user?user_id=${user_id}`)
                 let json = await fetched.json()
-                let audio_block = document.querySelector("#profile_audios")
-                if (audio_block && VKReact.settings.audio_toright) {
-                    document.querySelector("#wide_column > div:nth-child(2)").after(se(`<div class="page_block">${audio_block.outerHTML}</div>`))
-                    audio_block.remove()
-                }
-                if (VKReact.settings.users_userinfo && !document.getElementById("vkreact_userinfo")) {
-                    document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `
-                    <div id="vkreact_userinfo" class="label fl_l">Айди:</div>
-                    <div class="labeled underlined"><font color="#2a5885">${user_id}</font></div><br>`)
-                    let fetched = await fetch(`/foaf.php?id=${user_id}`)
-                    let text = await fetched.text()
-                    let parser = new DOMParser()
-                    let doc = parser.parseFromString(text, "text/html")
-                    let body = doc.body
-                    let reg_date = body.getElementsByTagName('ya:created')[0]?.attributes[0].value
-                    if (reg_date) {
-                        document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `<div id="vkreact_userinfo" class="label fl_l">Дата регистрации:</div>
-                        <div class="labeled">${parseDate(reg_date)}</div>`)
+                Object.values(VKReact.plugins).forEach(it => {
+                    if (it.on == "wall" && (VKReact.settings[it.model] || !it.model)) {
+                        it.run(user_id)
                     }
-                    let last_login = body.getElementsByTagName('ya:lastloggedin')[0]?.attributes[0].value
-                    if (last_login) {
-                        document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `<div id="vkreact_userinfo" class="label fl_l">Последний вход:</div><div class="labeled">${parseDate(last_login)}</div>`)
-                    }
-                    let last_change = body.getElementsByTagName('ya:modified')[0]?.attributes[0].value
-                    if (last_change) {
-                        document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `<div id="vkreact_userinfo" class="label fl_l">Последнее изменение:</div>
-                        <div class="labeled">${parseDate(last_change)}</div>`)
-                    }
-                    let selected = document.querySelectorAll("#vkreact_userinfo")
-                    selected[selected.length - 1].nextElementSibling.addEventListener("click", function () {
-                        navigator.clipboard.writeText(user_id)
-                        Notifier.showEvent({
-                            title: "VK React",
-                            text: `ID Пользователя скопирован!`,
-                        })
-                    })
-                }
+                })
                 if (!document.querySelector("a[href='/verify']") && json.status == "OK") {
                     let page_name = document.querySelector(".page_name")
                     page_name.appendChild(se(`<a href="/verify" class="page_verified " onmouseover="pageVerifiedTip(this, {type: 1, oid: ${user_id}})"></a>`))
@@ -680,23 +742,6 @@ var VKReact = {
         showTooltip(e, { text: o,  className: "tt_black" }) 
     },
     trackLyrics: async function() {
-        GM_addStyle(`
-        .loader {
-            border: 16px solid #f3f3f3; /* Light grey */
-            border-top: 16px solid #3498db; /* Blue */
-            border-radius: 50%;
-            width: 120px;
-            height: 120px;
-            left: 35%;
-            position:relative;
-            animation: spin 2s linear infinite;
-          }
-          
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `)
         let html = `<div class="loader"></div>`
         new MessageBox({ title: "Текст трека", width: 500, hideButtons: true, bodyStyle: 'padding:20px;'}).content(html).show()
         let audioPlayer = getAudioPlayer()
@@ -716,11 +761,222 @@ var VKReact = {
     }
 }
 
+VKReact.plugins['audio_toright'] = {
+    run: function() {
+        let audio_block = document.querySelector("#profile_audios")
+        if (audio_block) {
+            document.querySelector("#wide_column > div:nth-child(2)").after(se(`<div class="page_block">${audio_block.outerHTML}</div>`))
+            audio_block.remove()
+        }
+    },
+    on: 'wall',
+    model: "audio_toright"
+}
+
+VKReact.plugins['userinfo'] = {
+    run: async function(user_id) {
+        if (!document.getElementById("vkreact_userinfo")) {
+            document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `
+            <div id="vkreact_userinfo" class="label fl_l">Айди:</div>
+            <div class="labeled underlined"><font color="#2a5885">${user_id}</font></div><br>`)
+            let fetched = await fetch(`/foaf.php?id=${user_id}`)
+            let text = await fetched.text()
+            let parser = new DOMParser()
+            let doc = parser.parseFromString(text, "text/html")
+            let body = doc.body
+            let reg_date = body.getElementsByTagName('ya:created')[0]?.attributes[0].value
+            if (reg_date) {
+                document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `<div id="vkreact_userinfo" class="label fl_l">Дата регистрации:</div>
+                <div class="labeled">${VKReact.parseDate(reg_date)}</div>`)
+            }
+            let last_login = body.getElementsByTagName('ya:lastloggedin')[0]?.attributes[0].value
+            if (last_login) {
+                document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `<div id="vkreact_userinfo" class="label fl_l">Последний вход:</div><div class="labeled">${VKReact.parseDate(last_login)}</div>`)
+            }
+            let last_change = body.getElementsByTagName('ya:modified')[0]?.attributes[0].value
+            if (last_change) {
+                document.getElementsByClassName('label fl_l')[0].insertAdjacentHTML('beforebegin', `<div id="vkreact_userinfo" class="label fl_l">Последнее изменение:</div>
+                <div class="labeled">${VKReact.parseDate(last_change)}</div>`)
+            }
+            let selected = document.querySelectorAll("#vkreact_userinfo")
+            selected[selected.length - 1].nextElementSibling.addEventListener("click", function () {
+                navigator.clipboard.writeText(user_id)
+                Notifier.showEvent({
+                    title: "VK React",
+                    text: `ID Пользователя скопирован!`,
+                })
+            })
+        }
+    },
+    on: "wall",
+    model: "users_userinfo",
+}
+
+//TODO: implement gif manager, favourites
+VKReact.plugins['tenor'] = {
+    run: function (user_id) {
+        let tenorgifsbtn = document.querySelector("#vkreact_tenorgif")
+        if (!tenorgifsbtn) {
+            GM_addStyle(`div.im_chat-input--buttons > div:nth-child(4) > label {
+                cursor:pointer;
+                background: url('https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/24/attachments_24.svg') 50% no-repeat !important;
+                opacity: .7;
+            }`)
+            document.querySelector(".im-chat-input--attach").after(se(`
+            <div class="im-chat-input--attach" onclick="VKReact.plugins.tenor.showTenor()" id="vkreact_tenorgif" data-peer="${user_id}"> 
+                <input aria-label="Прикрепить GIF из Tenor" tabindex="0" id="im_tenor" class="im-chat-input--attach-file" size="28" >
+                <label onmouseover="showTooltip(this, { text: 'Tenor GIF', black: true, shift: [4, 5] });" for="im_tenor" class="im-chat-input--attach-label">
+                </label>
+            </div>`))
+        }
+        else {
+            tenorgifsbtn.setAttribute("data-peer", user_id)
+        }
+    },
+    showTenor: function() {
+        let user_id = document.getElementById("vkreact_tenorgif").getAttribute("data-peer")
+        GM_addStyle(`
+            #tenorinput {
+                height: 34px;
+                font-size: 15px;
+                font-family: vkbold;
+                display:inline;
+                border-color: var(--text_secondary);
+                background-color: var(--text_secondary);
+                color: white;
+                border-radius: 8em;
+                width: 100%;
+                margin-bottom: 20px;
+                border:none;
+            }
+            #tenorinput::placeholder {
+                color: white;
+                opacity: 0.4;
+            }
+            .tenorgifpreview {
+                display: inline;
+            }
+            .tenorgifpreview > img {
+                border: solid 2px var(--modal_card_background);
+                border-radius: 30px;
+                max-width: 200px;
+                margin-left: 15px;
+                min-width: 200px;
+                min-height: 200px;
+                max-height: 200px;
+                transition: border-width 0.1s linear, border 0.1s linear;
+            }
+            .tenorgifpreview.right {
+                float:right;
+                margin-top: -20px;
+            }
+            .tenorgifpreview:hover > img {
+                border: solid 2px var(--blue_420);
+            }
+            .tenorgifpreview:hover > #vkreact_start {
+                visibility: visible;
+                transform: translateY(30px);
+                
+            }
+            #vkreact_start {
+                background-image: url('https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/20/favorite_outline_20.svg');
+                background-repeat: no-repeat;
+                height: 20px;
+                left: 20px;
+                position: relative;
+                visibility: hidden;
+                transition: visibility 0.1s linear, transform 0.1s linear;
+            }
+            #vkreact_start:hover {
+                background-image: url('https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/20/favorite_20.svg');
+            }
+        `)
+        let html = `
+        <input type="text" placeholder="Поиск по Tenor" id="tenorinput" onkeyup="VKReact.plugins.tenor.onTenorInput(this, ${user_id})">
+        <div id="tenorgifs"></div>
+        `
+        new MessageBox({ title: "Tenor", width: 500, hideButtons: true, bodyStyle: 'padding:20px;height:500px;overflow-y:scroll;' }).content(html).show()
+    },
+    onTenorInput: async function(input, user_id) {
+        let fetched = await fetch(`${VKReact.apiURL}/tenor_search?q=${input.value}`)
+        let json = await fetched.json()
+        let gifs = document.getElementById("tenorgifs")
+        let results = json.results.results
+        let next = parseInt(json.results.next)
+        gifs.innerHTML = ''
+        this.extendTenorResults(results, user_id, input)
+        let _last = 0
+        let boxBody = document.querySelector(".box_body")
+        async function listener() {
+            if (boxBody.offsetHeight + boxBody.scrollTop >= boxBody.scrollHeight - 50) {
+                if (((new Date().getTime() / 1000) - _last) < 2 ) {
+                    return
+                }
+                _last = new Date().getTime() / 1000
+                VKReact.log("[Tenor] Requesting more gifs")
+                let fetched = await fetch(`${VKReact.apiURL}/tenor_search?q=${input.value}&next=${next}`)
+                let json = await fetched.json()
+                results = json.results.results
+                next += 10
+                VKReact.plugins.tenor.extendTenorResults(results, user_id, input)
+                return
+            }
+        }
+        if (this.scrollListener) {
+            boxBody.removeEventListener("scroll", this.scrollListener)
+        }
+        boxBody.addEventListener("scroll", listener)
+        this.scrollListener = listener
+        cancelEvent(input)
+    },
+    extendTenorResults: function(results, user_id, input) { //TODO TODO TODO
+        let gifs = document.getElementById("tenorgifs")
+        results.forEach(function (it, index) {
+            let img = se(
+                `<div class="${(index+1) % 2 == 0 ? 'tenorgifpreview right' : 'tenorgifpreview'}">
+                    <div id="vkreact_start" onclick="VKReact.plugins.tenor.addToFavs(this, ${it})"></div>
+                    <img src="${it.media[0].gif.url}" onclick="VKReact.plugins.tenor.onGifSend('${user_id}', '${it.id}', '${input.value}', '${it.media[0].gif.url}')">
+                </div>`)
+            gifs.appendChild(img)
+        })
+    },
+    onGifSend: async function(user_id, gif_id, query, gif_url) {
+        let found = VKReact.gifManager.find(gif_id)
+        if (found && found.attachment) {
+            VkAPI.call("messages.send", {"user_id": user_id, "random_id": VKReact.randomUint32(), "attachment": found.attachment})
+        }
+        else {
+            let body = document.querySelector(".box_body")
+            body.innerHTML = '<div id="app" style="text-align:center;">Производится оправка.. (Вы можете закрыть это окно)</div><div class="loader"></div>'
+            let response = await fetch(`${VKReact.apiURL}/send_gif?peer_id=${user_id}&q=${query}&gif_id=${gif_id}&gif_url=${gif_url}&user_id=${vk.id}`)
+            let json = await response.json()
+            VKReact.gifManager.get().push({"id": gif_id, "fav": 0, "url": gif_url, "attachment": json.attachment})
+            VKReact.gifManager.save()
+        }
+        document.querySelector("#box_layer > div.popup_box_container > div > div.box_title_wrap > div.box_x_button").click()
+    },
+    addToFavs: function(star, gif) {
+        // gifManager uses optimized gif object
+        let found = VKReact.gifManager.find(gif.value)
+
+        if (found) {
+            if (value.fav) { //liked
+
+            }
+            return
+        }
+
+        VKReact.gifManager.get().push({"id": gif.id, "fav": 1, "url": gif.media[0].gif.url})
+        VKReact.gifManager.save()
+
+    },
+    on: "dialog"
+}
+
 VKReact.plugins['patch_chat'] = {
     im_start: async function () {
         let cur_loc = clone(nav.objLoc);
         let user_id = document.getElementById("vkl_ui_action_menu_vkreact").getAttribute("data-peer")
-        console.log(user_id)
         let response = await vkApi.api("messages.getHistory", {"user_id":user_id, "rev":"1", "count":"1"})
         let mid = response['items'][0]['id']
         nav.go(extend(cur_loc, {'sel':''}));
@@ -741,7 +997,7 @@ VKReact.plugins['patch_chat'] = {
                 #im_start::before {
                     background-image: url('https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/24/arrow_up_24.svg') !important;
                 }
-                #im_start::before::hover {
+                #im_start::before:hover {
                     background-image: url('https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/24/arrow_up_24.svg') !important;
                 }
             `)
@@ -799,8 +1055,20 @@ VKReact.plugins['patch_chat'] = {
     on: "dialog"
 }
 
-
-
+VKReact.gifManager = {
+    // stores all gif attachments sent by this user
+    _gif_manager: '',
+    save: function() {
+        VKReact.log("Saving gif manager :)")
+        fetch(`${VKReact.apiURL}/update_user?user_id=${vk.id}&gif_manager=${JSON.stringify(this._gif_manager)}`)
+    },
+    get: function () {
+        return this._gif_manager
+    },
+    find: function(id) {
+        return this._gif_manager.find(value => value.id == id)
+    }
+}
 
 // патчи в ленту (работает как в сообществе, так и с /feed)
 VKReact.plugins['disable_ads'] = {

@@ -392,12 +392,21 @@ function vkUnescapeCyrLink(str){ // auto detect decode from utf8/win1251 escaped
     });
 }
 
+function randomUint32() {
+    if (window && window.crypto && window.crypto.getRandomValues && Uint32Array) {
+        var o = new Uint32Array(1);
+        window.crypto.getRandomValues(o);
+        return o[0];
+    } else {
+        console.warn('Falling back to pseudo-random client seed');
+        return Math.floor(Math.random() * Math.pow(2, 32));
+    }
+}
+
 VKReact.settings = {
+    // setters are managed by vue
     get disable_ads() { //optimize this bs
         return GM_getValue("disable_ads", false)
-    },
-    set disable_ads(value) {
-        return GM_setValue("disable_ads", value)
     },
     get feed_disable_recc() {
         return GM_getValue("feed_disable_recc", false)
@@ -405,50 +414,37 @@ VKReact.settings = {
     get feed_votes_without_vote() {
         return GM_getValue("feed_votes_without_vote", false)
     },
-    set feed_votes_without_vote(value) {
-        return GM_setValue("feed_votes_without_vote", value)
-    },
-    set feed_disable_recc(value) {
-        return GM_setValue("feed_disable_recc", value)
-    },
     get feed_disable_comments() {
         return GM_getValue("feed_disable_comments", false)
-    },
-    set feed_disable_comments(value) {
-        return GM_setValue("feed_disable_comments", value)
     },
     get ui_disable_services() {
         return GM_getValue("ui_disable_services", false)
     },
-    set ui_disable_services(value) {
-        return GM_setValue("ui_disable_services", value)
-    },
     get disable_awayphp() {
         return GM_getValue("disable_awayphp", false)
-    },
-    set disable_awayphp(value) {
-        return GM_setValue("disable_awayphp", value)
     },
     get audio_toright() {
         return GM_getValue("audio_toright", false)
     },
-    set audio_toright(value) {
-        return GM_setValue("audio_toright", value)
-    },
     get feed_disable_reposts() {
         return GM_getValue("feed_disable_reposts", false)
     },
-    set feed_disable_reposts(value) {
-        return GM_setValue("feed_disable_reposts", value)
-    },
     get users_userinfo() {
         return GM_getValue("users_userinfo", false)
-    },
-    set users_userinfo(value) {
-        return GM_setValue("users_userinfo", value)
     }
 }
 
+function parseDate(date_raw) {
+    var date = new Date(date_raw);
+    var month_lang = getLang('month'+(date.getMonth()+1)+'_of');
+    if (month_lang)
+       date = dateFormat(date, "d '" + month_lang + "' yyyy (HH:MM)");
+    else
+       date = dateFormat(date, 'd.mm.yyyy (HH:MM)');
+    return date
+}
+VKReact.parseDate = parseDate
+VKReact.randomUint32 = randomUint32
 Inj.InitStringifier();
 VKReact.Inj = Inj
 VKReact.vkUnescapeCyrLink = vkUnescapeCyrLink

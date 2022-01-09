@@ -1,22 +1,3 @@
-// ==UserScript==
-// @name         VK React
-// @namespace    http://tampermonkey.net/
-// @description  Help tool for vk
-// @author       SPRAVEDLIVO
-// @match        https://vk.com/*
-// @icon         https://edge.dimden.dev/835d299b61.png
-// @grant        GM_addElement
-// @grant        GM_addStyle
-// @grant        GM_getValue
-// @grant        GM_setValue
-// @grant        unsafeWindow
-// @run-at       document-idle
-// @version      1.0
-// @require      https://cdn.jsdelivr.net/npm/vue@2
-// @connect      spravedlivo.dev
-// @require      https://gist.githubusercontent.com/eralston/968809/raw/a18b38bede4e3d0e2f1c720bd1e4c010e646bb6d/DateFormat.js
-// ==/UserScript==
-
 var VkAPI = {
     apiURL: "https://api.vk.com/method/",
     call: async function (method, arguments, log = false) {

@@ -1,7 +1,6 @@
 // ==UserScript==
 // @name         VK React
 // @namespace    http://tampermonkey.net/
-// @version      0.1
 // @description  Help tool for vk
 // @author       SPRAVEDLIVO
 // @match        https://vk.com/*

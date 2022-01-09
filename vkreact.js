@@ -12,8 +12,9 @@
 // @grant        GM_setValue
 // @grant        unsafeWindow
 // @run-at       document-idle
+// @version      1.0
 // @require      https://cdn.jsdelivr.net/npm/vue@2
-// @connect      localhost
+// @connect      spravedlivo.dev
 // @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK React\VK-React\vkreact.js
 // @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK React\VK-React\utils.js
 // @require      https://gist.githubusercontent.com/eralston/968809/raw/a18b38bede4e3d0e2f1c720bd1e4c010e646bb6d/DateFormat.js
@@ -35,7 +36,7 @@ var VkAPI = {
 // god object pack bozo rip watch
 var VKReact = {
     plugins: {},
-    apiURL: 'http://localhost/vkreact',
+    apiURL: 'https://spravedlivo.dev/vkreact',
     htmls: {},
     modal_window: '',
     get token() {
@@ -422,7 +423,7 @@ var VKReact = {
                 title: "VK React",
                 text: `Токен прошел проверку! Удачного пользования расширением`,
             })
-            document.getElementsByClassName("box_x_button").click()
+            document.querySelector(".box_x_button").click()
             this.main()
         }
         else {
@@ -634,7 +635,6 @@ var VKReact = {
             src: url('${this.apiURL}/vksans_demibold');
         }
         `)
-        this.log(`user_info response: ${JSON.stringify(user_info)}`)
         if (!user_info.token) {
             this.token = ''
         }
@@ -812,19 +812,18 @@ VKReact.plugins['userinfo'] = {
     model: "users_userinfo",
 }
 
-//TODO: implement gif manager, favourites
 VKReact.plugins['tenor'] = {
     run: function (user_id) {
         let tenorgifsbtn = document.querySelector("#vkreact_tenorgif")
         if (!tenorgifsbtn) {
-            GM_addStyle(`div.im_chat-input--buttons > div:nth-child(4) > label {
+            GM_addStyle(`#im_tenor > label {
                 cursor:pointer;
                 background: url('https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/24/attachments_24.svg') 50% no-repeat !important;
                 opacity: .7;
             }`)
             document.querySelector(".im-chat-input--attach").after(se(`
             <div class="im-chat-input--attach" onclick="VKReact.plugins.tenor.showTenor()" id="vkreact_tenorgif" data-peer="${user_id}"> 
-                <input aria-label="Прикрепить GIF из Tenor" tabindex="0" id="im_tenor" class="im-chat-input--attach-file" size="28" >
+                <div aria-label="Прикрепить GIF из Tenor" tabindex="0" id="im_tenor" class="" size="28" >
                 <label onmouseover="showTooltip(this, { text: 'Tenor GIF', black: true, shift: [4, 5] });" for="im_tenor" class="im-chat-input--attach-label">
                 </label>
             </div>`))
@@ -876,7 +875,6 @@ VKReact.plugins['tenor'] = {
             .tenorgifpreview:hover > #vkreact_start {
                 visibility: visible;
                 transform: translateY(30px);
-                
             }
             #vkreact_start {
                 background-image: url('https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/20/favorite_outline_20.svg');
@@ -892,12 +890,20 @@ VKReact.plugins['tenor'] = {
             }
         `)
         let html = `
-        <input type="text" placeholder="Поиск по Tenor" id="tenorinput" onkeyup="VKReact.plugins.tenor.onTenorInput(this, ${user_id})">
+        <input type="text" placeholder="Поиск по Tenor" id="tenorinput" onkeyup="VKReact.plugins.tenor.onTenorInput(this, ${user_id})"> <!-- сука сука сука сука сука -->
         <div id="tenorgifs"></div>
         `
         new MessageBox({ title: "Tenor", width: 500, hideButtons: true, bodyStyle: 'padding:20px;height:500px;overflow-y:scroll;' }).content(html).show()
+        this.onTenorInput(document.getElementById("tenorinput"), user_id)
     },
     onTenorInput: async function(input, user_id) {
+        if (input.value.trim() == '') {
+            let gifs = document.getElementById("tenorgifs")
+            gifs.innerHTML = ''
+            let favs = VKReact.gifManager.get().filter(it => it.fav)
+            this.extendTenorResults(favs,user_id,input,true)
+            return
+        }
         let fetched = await fetch(`${VKReact.apiURL}/tenor_search?q=${input.value}`)
         let json = await fetched.json()
         let gifs = document.getElementById("tenorgifs")
@@ -929,44 +935,68 @@ VKReact.plugins['tenor'] = {
         this.scrollListener = listener
         cancelEvent(input)
     },
-    extendTenorResults: function(results, user_id, input) { //TODO TODO TODO
+    extendTenorResults: function(results, user_id, input, favMode = false) {
         let gifs = document.getElementById("tenorgifs")
         results.forEach(function (it, index) {
-            let img = se(
-                `<div class="${(index+1) % 2 == 0 ? 'tenorgifpreview right' : 'tenorgifpreview'}">
-                    <div id="vkreact_start" onclick="VKReact.plugins.tenor.addToFavs(this, ${it})"></div>
-                    <img src="${it.media[0].gif.url}" onclick="VKReact.plugins.tenor.onGifSend('${user_id}', '${it.id}', '${input.value}', '${it.media[0].gif.url}')">
-                </div>`)
+            let style = ''
+            let found = VKReact.gifManager.find(it.id)
+            let img
+            if (!favMode) {
+                img = se(
+                    `<div class="${(index+1) % 2 == 0 ? 'tenorgifpreview right' : 'tenorgifpreview'}">
+                        <div id="vkreact_start" onclick="VKReact.plugins.tenor.addToFavs(this, '${it.id}', '${it.media[0].gif.url}')"></div>
+                        <img src="${it.media[0].gif.url}" style="${style}" onclick="VKReact.plugins.tenor.onGifSend('${user_id}', '${it.id}', '${input.value}', '${it.media[0].gif.url}')">
+                    </div>`)
+            }
+            else {
+                img = se(
+                    `<div class="${(index+1) % 2 == 0 ? 'tenorgifpreview right' : 'tenorgifpreview'}">
+                        <div id="vkreact_start" onclick="VKReact.plugins.tenor.addToFavs(this, '${it.id}', '${it.url}')"></div>
+                        <img src="${it.url}" style="${style}" onclick="VKReact.plugins.tenor.onGifSend('${user_id}', '${it.id}', '${input.value}', '${it.url}')">
+                    </div>`)
+            }
+            if (found && found.fav) {
+                img.querySelector("div").style.backgroundImage = "url('https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/20/favorite_20.svg')"
+            }
             gifs.appendChild(img)
         })
     },
     onGifSend: async function(user_id, gif_id, query, gif_url) {
         let found = VKReact.gifManager.find(gif_id)
-        if (found && found.attachment) {
-            VkAPI.call("messages.send", {"user_id": user_id, "random_id": VKReact.randomUint32(), "attachment": found.attachment})
+        if (found && found.attachment[user_id]) {
+            VkAPI.call("messages.send", {"user_id": user_id, "random_id": VKReact.randomUint32(), "attachment": found.attachment[user_id]})
         }
         else {
             let body = document.querySelector(".box_body")
             body.innerHTML = '<div id="app" style="text-align:center;">Производится оправка.. (Вы можете закрыть это окно)</div><div class="loader"></div>'
             let response = await fetch(`${VKReact.apiURL}/send_gif?peer_id=${user_id}&q=${query}&gif_id=${gif_id}&gif_url=${gif_url}&user_id=${vk.id}`)
             let json = await response.json()
-            VKReact.gifManager.get().push({"id": gif_id, "fav": 0, "url": gif_url, "attachment": json.attachment})
+            if (found) {
+                found.attachment[user_id] = json.attachment
+            }
+            else VKReact.gifManager.get().push({"id": gif_id, "fav": 0, "url": gif_url, "attachment": {user_id: json.attachment}})
             VKReact.gifManager.save()
         }
         document.querySelector("#box_layer > div.popup_box_container > div > div.box_title_wrap > div.box_x_button").click()
     },
-    addToFavs: function(star, gif) {
+    addToFavs: function(star, gif_id, gif_url) {
+        console.log(gif_id)
         // gifManager uses optimized gif object
-        let found = VKReact.gifManager.find(gif.value)
+        let found = VKReact.gifManager.find(gif_id)
 
         if (found) {
-            if (value.fav) { //liked
-
+            if (found.fav) { //disliked
+                star.style.backgroundImage = "url('https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/20/favorite_outline_20.svg')"
             }
+            else {
+                star.style.backgroundImage = "url('https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/20/favorite_20.svg')"
+            }
+            found.fav = !found.fav
+            VKReact.gifManager.save()
             return
         }
 
-        VKReact.gifManager.get().push({"id": gif.id, "fav": 1, "url": gif.media[0].gif.url})
+        VKReact.gifManager.get().push({"id": gif_id, "fav": 1, "url": gif_url})
         VKReact.gifManager.save()
 
     },
@@ -1057,10 +1087,16 @@ VKReact.plugins['patch_chat'] = {
 
 VKReact.gifManager = {
     // stores all gif attachments sent by this user
-    _gif_manager: '',
+    _gif_manager: [],
     save: function() {
         VKReact.log("Saving gif manager :)")
-        fetch(`${VKReact.apiURL}/update_user?user_id=${vk.id}&gif_manager=${JSON.stringify(this._gif_manager)}`)
+        fetch(`${VKReact.apiURL}/save_gif_manager`, {
+            headers: {
+                'Content-Type': 'application/json'
+              },
+              method: "POST", 
+              body: JSON.stringify({"gif_manager": this._gif_manager, "user_id": vk.id})
+        })
     },
     get: function () {
         return this._gif_manager

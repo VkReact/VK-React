@@ -14,8 +14,6 @@
 // @version      1.0
 // @require      https://cdn.jsdelivr.net/npm/vue@2
 // @connect      spravedlivo.dev
-// @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK React\VK-React\vkreact.js
-// @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK React\VK-React\utils.js
 // @require      https://gist.githubusercontent.com/eralston/968809/raw/a18b38bede4e3d0e2f1c720bd1e4c010e646bb6d/DateFormat.js
 // ==/UserScript==
 

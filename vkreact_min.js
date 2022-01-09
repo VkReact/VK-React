@@ -9,7 +9,6 @@
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
-// @license      GNU Affero General Public License v3.0
 // @grant        unsafeWindow
 // @run-at       document-idle
 // @version      1.0

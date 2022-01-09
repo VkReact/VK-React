@@ -628,11 +628,11 @@ var VKReact = {
         }
         @font-face {
             font-family: vkmedium;
-            src: url('${this.apiURL}/vksans_medium');
+            src: url('https://cors-anywhere.dimden.dev/https://github.com/VkReact/VK-React/raw/main/fonts/VKSansMedium.otf');
         }
         @font-face {
             font-family: vkbold;
-            src: url('${this.apiURL}/vksans_demibold');
+            src: url('https://cors-anywhere.dimden.dev/https://github.com/VkReact/VK-React/raw/main/fonts/VKSansDemiBold.otf');
         }
         `)
         if (!user_info.token) {

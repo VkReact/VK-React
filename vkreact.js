@@ -11,10 +11,67 @@ var VkAPI = {
     }
 }
 
+var GeniusAPI = {
+    apiURL: "https://cors-anywhere.dimden.dev/https://api.genius.com/",
+    search_lyrics: async function (artist, title) {
+        //console.log("hi")
+        let headers = {
+            'User-Agent': 'Genius/4.2.1 (Android; Android 10; google Pixel 3)',
+            'x-genius-android-version': '4.2.1',
+            'accept-encoding': 'gzip'
+        }
+        let beb = 'https://cors-anywhere.dimden.dev/https://api.genius.com';
+        let r = await fetch(
+            `${beb}/search?q=${title + ' ' + encodeURIComponent((artist.replaceAll(/,|feat\./g,'')).toLowerCase())}`, {
+                headers: headers
+            }
+        )
+        let data = await r.json()
+        const results = data.response.hits.map((val) => {
+			const { full_title, song_art_image_url, id, url } = val.result;
+			return { id, title: full_title, albumArt: song_art_image_url, url };
+		})
+        GeniusAPI.extractLyrics(results[0].url);
+    },
+    extractLyrics: async function (url) {
+        console.log(url)
+        let headers = {
+            'User-Agent': 'Genius/4.2.1 (Android; Android 10; google Pixel 3)',
+            'x-genius-android-version': '4.2.1',
+            'accept-encoding': 'gzip'
+        }
+        await GM_xmlhttpRequest({
+            url: url,
+            headers,
+            onload: function (response) {
+                let parser = new DOMParser()
+                let doc = parser.parseFromString(response.response, "text/html")
+                let lyrics = doc.querySelector('div[class="lyrics"]')
+                if (!lyrics) {
+                    lyrics = ''
+                    doc.querySelectorAll('div[class^="Lyrics__Container"]').forEach(elem => {
+                        if(elem.textContent.length !== 0) {
+                            lyrics += elem.innerHTML
+                        }
+                    })
+                }
+                if (lyrics.length == 0) {
+                    document.querySelector(".box_body").innerHTML = `<div id ="app">Нам не удалось загрузить текст песни.</div>`
+                }
+                else {
+                    let body = document.querySelector(".box_body")
+                    body.innerHTML = `<div id ="app">${lyrics}</div>`
+                }
+                
+            }
+        })
+    }
+}
+
 // god object pack bozo rip watch
 var VKReact = {
     plugins: {},
-    apiURL: 'https://spravedlivo.dev/vkreact',
+    apiURL: 'http://localhost/vkreact',
     htmls: {},
     modal_window: '',
     get token() {
@@ -422,7 +479,7 @@ var VKReact = {
             position:relative;
             animation: spin 2s linear infinite;
         }
-          @keyframes spin {
+        @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
@@ -725,17 +782,7 @@ var VKReact = {
         let audioPlayer = getAudioPlayer()
         let song_name = audioPlayer._currentAudio[3]
         let artist = audioPlayer._currentAudio[4]
-        let response = await fetch(`${this.apiURL}/lyrics?artist=${artist}&song=${song_name}`)
-        let json = await response.json()
-        document.querySelector(".loader").remove()
-        if (json.status == "ERROR") {
-            document.querySelector(".box_body").innerHTML = `<div id ="app">Нам не удалось загрузить текст песни.</div>`
-        }
-        else {
-            let body = document.querySelector(".box_body")
-            body.innerHTML = `<div id ="app">${json.lyrics}</div>`
-        }
-
+        GeniusAPI.search_lyrics(artist, song_name)
     }
 }
 

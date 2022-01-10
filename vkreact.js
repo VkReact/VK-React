@@ -71,7 +71,7 @@ var GeniusAPI = {
 // god object pack bozo rip watch
 var VKReact = {
     plugins: {},
-    apiURL: 'http://localhost/vkreact',
+    apiURL: 'https://spravedlivo.dev/vkreact',
     htmls: {},
     modal_window: '',
     get token() {

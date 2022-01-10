@@ -14,7 +14,6 @@ var VkAPI = {
 var GeniusAPI = {
     apiURL: "https://cors-anywhere.dimden.dev/https://api.genius.com/",
     search_lyrics: async function (artist, title) {
-        //console.log("hi")
         let headers = {
             'User-Agent': 'Genius/4.2.1 (Android; Android 10; google Pixel 3)',
             'x-genius-android-version': '4.2.1',
@@ -34,7 +33,6 @@ var GeniusAPI = {
         GeniusAPI.extractLyrics(results[0].url);
     },
     extractLyrics: async function (url) {
-        console.log(url)
         let headers = {
             'User-Agent': 'Genius/4.2.1 (Android; Android 10; google Pixel 3)',
             'x-genius-android-version': '4.2.1',
@@ -1005,7 +1003,6 @@ VKReact.plugins['tenor'] = {
         document.querySelector("#box_layer > div.popup_box_container > div > div.box_title_wrap > div.box_x_button").click()
     },
     addToFavs: function(star, gif_id, gif_url) {
-        console.log(gif_id)
         // gifManager uses optimized gif object
         let found = VKReact.gifManager.find(gif_id)
 

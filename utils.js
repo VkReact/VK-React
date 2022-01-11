@@ -403,36 +403,17 @@ function randomUint32() {
     }
 }
 
+
+VKReact.clientside_settings = ["disable_ads", "feed_disable_recc", 'feed_votes_without_vote',
+                               'feed_disable_comments', 'ui_disable_services', 'disable_awayphp', 'audio_toright', 'feed_disable_reposts', 'users_userinfo']
+VKReact.serverside_settings = ["online", "friends_autoaccept", "friends_autoaccept_blocked", "friends_removeblocked"]
+
 VKReact.settings = {
-    // setters are managed by vue
-    get disable_ads() { //optimize this bs
-        return GM_getValue("disable_ads", false)
-    },
-    get feed_disable_recc() {
-        return GM_getValue("feed_disable_recc", false)
-    },
-    get feed_votes_without_vote() {
-        return GM_getValue("feed_votes_without_vote", false)
-    },
-    get feed_disable_comments() {
-        return GM_getValue("feed_disable_comments", false)
-    },
-    get ui_disable_services() {
-        return GM_getValue("ui_disable_services", false)
-    },
-    get disable_awayphp() {
-        return GM_getValue("disable_awayphp", false)
-    },
-    get audio_toright() {
-        return GM_getValue("audio_toright", false)
-    },
-    get feed_disable_reposts() {
-        return GM_getValue("feed_disable_reposts", false)
-    },
-    get users_userinfo() {
-        return GM_getValue("users_userinfo", false)
-    }
+    
 }
+
+VKReact.clientside_settings.forEach(it => Object.defineProperty(VKReact.settings, it, {get: function() {return GM_getValue(it, false)}, set: function(value) {VKReact.onVariableSwitch(it); GM_setValue(it, value)}}))
+VKReact.serverside_settings.forEach(it => Object.defineProperty(VKReact.settings, it, {get: function() {return this[`_${it}`]}, set: function(value) {this[`_${it}`] = value;fetch(`${VKReact.apiURL}/update_user?user_id=${vk.id}&${it}=${VKReact.settings["_"+it]}`)}}))
 
 function parseDate(date_raw) {
     var date = new Date(date_raw);

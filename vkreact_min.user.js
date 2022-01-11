@@ -13,7 +13,6 @@
 // @grant        unsafeWindow
 // @run-at       document-idle
 // @version      1.0
-// @require      https://cdn.jsdelivr.net/npm/vue@2
 // @connect      genius.com
 // @connect      spravedlivo.dev
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/vkreact.js

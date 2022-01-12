@@ -11,6 +11,7 @@
 // @grant        GM_setValue
 // @grant        GM_xmlhttpRequest
 // @grant        unsafeWindow
+// @grant        GM_deleteValue
 // @run-at       document-idle
 // @version      1.0
 // @connect      genius.com
@@ -22,8 +23,8 @@
 
 //dev:
 // @connect      localhost
-// @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK React\VK-React\vkreact.js
-// @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK React\VK-React\utils.js
+// @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK-React\VK-React\vkreact.js
+// @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK-React\VK-React\utils.js
 //prod:
 // @connect      spravedlivo.dev
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/vkreact.js

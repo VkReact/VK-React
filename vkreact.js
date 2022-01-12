@@ -11,6 +11,19 @@ var VkAPI = {
     }
 }
 
+var VkReactAPI = {
+    initialize: function() {
+        this.apiURL = `https://spravedlivo.dev/vkreact`
+    },
+    call: async function (endpoint, arguments, log = true, raw = false) {
+        if (!raw) arguments['uuid'] = VKReact.uuid
+        let result = await fetch(`${this.apiURL}/${endpoint}?${new URLSearchParams(arguments).toString()}`)
+        let json = await result.json()
+        if (log) VKReact.log(`[VKReactAPI] Response from ${endpoint}: ${JSON.stringify(json)}`)
+        return json
+    }
+}
+
 var GeniusAPI = {
     apiURL: "https://cors-anywhere.dimden.dev/https://api.genius.com/",
     search_lyrics: async function (artist, title) {
@@ -69,7 +82,6 @@ var GeniusAPI = {
 // god object pack bozo rip watch
 var VKReact = {
     plugins: {},
-    apiURL: 'https://spravedlivo.dev/vkreact',
     htmls: {},
     modal_window: '',
     get token() {
@@ -77,6 +89,12 @@ var VKReact = {
     },
     set token(value) {
         GM_setValue("vkreact_vk_api_token", value)
+    },
+    get uuid() {
+        return GM_getValue("api_uuid")
+    },
+    set uuid(value) {
+        GM_setValue("api_uuid", value)
     },
     sleep: function(ms) {
         return new Promise(resolve => setTimeout(resolve, ms))
@@ -152,7 +170,7 @@ var VKReact = {
     log: (...rest) => {
         return console.log(
             "%cVK React:",
-            "background: #ff0900; color: #fff; padding: 6px;",
+            "background: #121212; color: #fff; padding: 6px;",
             ...rest,
         );
     },
@@ -174,8 +192,7 @@ var VKReact = {
     },
     settoken: async function () {
         let _token = document.getElementById("enteredlink").value
-        let result = await fetch(`${VKReact.apiURL}/submit_token?user_id=${vk.id}&token=${_token}`)
-        let json = await result.json()
+        let json = await VkReactAPI.call("submit_token", {"user_id": vk.id, "token": _token})
         if (json.status == "OK") {
             this.token = _token
             Notifier.showEvent({
@@ -190,8 +207,7 @@ var VKReact = {
         }
     },
     main: async function () {
-        let f = await fetch(`${this.apiURL}/get_user?user_id=${vk.id}&register=true`)
-        let user_info = await f.json() // register user
+        VkReactAPI.initialize()
         GM_addStyle(`
         .loader {
             border: 16px solid #f3f3f3; /* Light grey */
@@ -394,6 +410,29 @@ var VKReact = {
             src: url('https://cors-anywhere.dimden.dev/https://github.com/VkReact/VK-React/raw/main/fonts/VKSansDemiBold.otf');
         }
         `)
+        let user_info = this.uuid ? await VkReactAPI.call("get_user", {"user_id": vk.id}) : await VkReactAPI.call("get_user", {"user_id": vk.id, "register":true}, false, true)
+        if (user_info.status == "PAUSED") {
+            if (!GM_getValue("login_id")) {
+                let html = `
+                <div id="app">
+                    Обнаружена попытка входа в аккаунт с нового устройста. Напишите боту и отправьте хуй
+                    ${user_info.login_id}
+                </div>
+                `
+                GM_setValue("login_id", user_info.login_id)
+                console.log(GM_getValue("login_id"))
+                new MessageBox({ title: "VK React LogIn", width: 560, hideButtons: true, bodyStyle: 'padding-top:12px;' }).content(html).show()
+            }
+            else {
+                new MessageBox({ title: "VK React LogIn", width: 560, hideButtons: true, bodyStyle: 'padding-top:12px;'}).content(`<div id="app">Вы еще не авторизовали попытку входа! ${GM_getValue("login_id")}</div>`).show()
+            }
+            return
+        }
+        GM_deleteValue("login_id")
+        if (user_info.uuid) {
+            this.uuid = user_info.uuid
+            this.token = user_info.token_value
+        }
         if (!user_info.token) {
             this.token = ''
         }
@@ -460,7 +499,7 @@ var VKReact = {
                     top_audio.removeEventListener("click", patch_topAudio)
                 }
             }
-            top_audio.addEventListener("click", patch_topAudio)
+            if (top_audio) top_audio.addEventListener("click", patch_topAudio)
             if (/audios/i.test(url) && !ge('vkreact_lyrics2')) {
                 let shuffle_button = document.querySelector("#content > div > div._audio_page_player_wrap.audio_page_player_wrap.page_block > div > div.audio_page_player_ctrl.audio_page_player_btns._audio_page_player_btns.clear_fix > button.audio_page_player_btn.audio_page_player_shuffle._audio_page_player_shuffle")
                 if (shuffle_button) {
@@ -470,8 +509,7 @@ var VKReact = {
             let wall = await find_wall()
             if (wall) {
                 let user_id = (wall.href.match(/wall(\d+)/i) || [])[1]
-                let fetched = await fetch(`${VKReact.apiURL}/get_user?user_id=${user_id}`)
-                let json = await fetched.json()
+                let json = await VkReactAPI.call({"user_id": user_id})
                 Object.values(VKReact.plugins).forEach(it => {
                     if (it.on == "wall" && (VKReact.settings[it.model] || !it.model)) {
                         it.run(user_id)
@@ -564,6 +602,7 @@ VKReact.plugins['userinfo'] = {
     model: "users_userinfo",
 }
 
+// TODO: fix gif manager
 VKReact.plugins['tenor'] = {
     run: function (user_id) {
         let tenorgifsbtn = document.querySelector("#vkreact_tenorgif")
@@ -656,8 +695,7 @@ VKReact.plugins['tenor'] = {
             this.extendTenorResults(favs,user_id,input,true)
             return
         }
-        let fetched = await fetch(`${VKReact.apiURL}/tenor_search?q=${input.value}`)
-        let json = await fetched.json()
+        let json = await VkReactAPI.call("tenor_search", {"q": input.value})
         let gifs = document.getElementById("tenorgifs")
         let results = json.results.results
         let next = parseInt(json.results.next)
@@ -672,8 +710,7 @@ VKReact.plugins['tenor'] = {
                 }
                 _last = new Date().getTime() / 1000
                 VKReact.log("[Tenor] Requesting more gifs")
-                let fetched = await fetch(`${VKReact.apiURL}/tenor_search?q=${input.value}&next=${next}`)
-                let json = await fetched.json()
+                let json = await VkReactAPI.call("tenor_search", {"q": input.value, "next": next})
                 results = json.results.results
                 next += 10
                 VKReact.plugins.tenor.extendTenorResults(results, user_id, input)
@@ -715,18 +752,17 @@ VKReact.plugins['tenor'] = {
     },
     onGifSend: async function(user_id, gif_id, query, gif_url) {
         let found = VKReact.gifManager.find(gif_id)
-        if (found && found.attachment[user_id]) {
+        if (found && found.attachment && found.attachment[user_id]) {
             VkAPI.call("messages.send", {"user_id": user_id, "random_id": VKReact.randomUint32(), "attachment": found.attachment[user_id]})
         }
         else {
             let body = document.querySelector(".box_body")
             body.innerHTML = '<div id="app" style="text-align:center;">Производится оправка.. (Вы можете закрыть это окно)</div><div class="loader"></div>'
-            let response = await fetch(`${VKReact.apiURL}/send_gif?peer_id=${user_id}&q=${query}&gif_id=${gif_id}&gif_url=${gif_url}&user_id=${vk.id}`)
-            let json = await response.json()
+            let json = await VkReactAPI.call("send_gif", {"peer_id": user_id, "q": query, "gif_id": gif_id, "gif_url": gif_url, "user_id": vk.id})
             if (found) {
                 found.attachment[user_id] = json.attachment
             }
-            else VKReact.gifManager.get().push({"id": gif_id, "fav": 0, "url": gif_url, "attachment": {user_id: json.attachment}})
+            else VKReact.gifManager.get().push({"id": gif_id, "fav": 0, "url": gif_url, "attachment": {"user_id": json.attachment}})
             VKReact.gifManager.save()
         }
         document.querySelector("#box_layer > div.popup_box_container > div > div.box_title_wrap > div.box_x_button").click()
@@ -747,7 +783,7 @@ VKReact.plugins['tenor'] = {
             return
         }
 
-        VKReact.gifManager.get().push({"id": gif_id, "fav": 1, "url": gif_url})
+        VKReact.gifManager.get().push({"id": gif_id, "fav": 1, "url": gif_url, "attachment": {}})
         VKReact.gifManager.save()
 
     },
@@ -1041,12 +1077,12 @@ VKReact.gifManager = {
     _gif_manager: [],
     save: function() {
         VKReact.log("Saving gif manager :)")
-        fetch(`${VKReact.apiURL}/save_gif_manager`, {
+        fetch(`${VkReactAPI.apiURL}/save_gif_manager`, {
             headers: {
                 'Content-Type': 'application/json'
               },
               method: "POST", 
-              body: JSON.stringify({"gif_manager": this._gif_manager, "user_id": vk.id})
+              body: JSON.stringify({"gif_manager": this._gif_manager, "user_id": vk.id, "uuid": VKReact.uuid})
         })
     },
     get: function () {

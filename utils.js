@@ -413,7 +413,18 @@ VKReact.settings = {
 }
 
 VKReact.clientside_settings.forEach(it => Object.defineProperty(VKReact.settings, it, {get: function() {return GM_getValue(it, false)}, set: function(value) {VKReact.onVariableSwitch(it); GM_setValue(it, value)}}))
-VKReact.serverside_settings.forEach(it => Object.defineProperty(VKReact.settings, it, {get: function() {return this[`_${it}`]}, set: function(value) {this[`_${it}`] = value;fetch(`${VKReact.apiURL}/update_user?user_id=${vk.id}&${it}=${VKReact.settings["_"+it]}`)}}))
+VKReact.serverside_settings.forEach(it => Object.defineProperty(VKReact.settings, it, {
+   get: function() {
+      return this[`_${it}`]
+   }, 
+   set: function(value) {
+      this[`_${it}`] = value
+      let obj = {"user_id":vk.id}
+      Object.defineProperty(obj, it, {value: VKReact.settings["_"+it], enumerable: true})
+      console.log(obj)
+      VkReactAPI.call("update_user", obj)
+   }
+}))
 
 function parseDate(date_raw) {
     var date = new Date(date_raw);

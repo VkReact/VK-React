@@ -405,7 +405,8 @@ function randomUint32() {
 
 
 VKReact.clientside_settings = ["disable_ads", "feed_disable_recc", 'feed_votes_without_vote',
-                               'feed_disable_comments', 'ui_disable_services', 'disable_awayphp', 'audio_toright', 'feed_disable_reposts', 'users_userinfo']
+                               'feed_disable_comments', 'ui_disable_services', 'disable_awayphp', 'audio_toright', 'feed_disable_reposts', 'users_userinfo',
+                               'track_lyrics', 'tenor']
 VKReact.serverside_settings = ["online", "friends_autoaccept", "friends_autoaccept_blocked", "friends_removeblocked"]
 
 VKReact.settings = {
@@ -435,7 +436,21 @@ function parseDate(date_raw) {
        date = dateFormat(date, 'd.mm.yyyy (HH:MM)');
     return date
 }
+
+function user_id() {
+   if (window.vk && vk.id) return String(vk.id);
+   let sidebar = window.ge && (ge('sideBar') || ge('side_bar'));
+   if (window.im) return im.id;
+   let tmp = null;
+   if (sidebar) {
+      tmp = sidebar.innerHTML.match(/albums(\d+)/);
+      tmp = tmp ? tmp[1] : '';
+   }
+   return tmp;
+}
+
 VKReact.parseDate = parseDate
+VKReact.user_id = user_id
 VKReact.randomUint32 = randomUint32
 Inj.InitStringifier();
 VKReact.Inj = Inj

@@ -11,6 +11,8 @@ var VkAPI = {
     }
 }
 
+window = unsafeWindow
+
 var VkReactAPI = {
     initialize: function () {
         this.apiURL = `https://spravedlivo.dev/vkreact`
@@ -429,7 +431,6 @@ var VKReact = {
             src: url('https://cors-anywhere.dimden.dev/https://github.com/VkReact/VK-React/raw/main/fonts/VKSansDemiBold.otf');
         }
         `)
-        unsafeWindow.GM_deleteValue = GM_deleteValue
         let user_info = this.uuid ? await VkReactAPI.call("get_user", { "user_id": this.user_id() }) : await VkReactAPI.call("get_user", { "user_id": this.user_id(), "register": true }, false, true)
         if (user_info.status == "PAUSED") {
             if (!GM_getValue("login_id")) {

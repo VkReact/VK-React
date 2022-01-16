@@ -89,7 +89,7 @@ var VKReact = {
     htmls: {},
     modal_window: '',
     ads_posts: new Set(),
-    connected_to_ads: false,
+    vkreact_platinum: false,
     get token() {
         return GM_getValue("vkreact_vk_api_token")
     },
@@ -224,11 +224,20 @@ var VKReact = {
         }
     },
     main: async function () {
-        //if (location.host == "localhost" && /settings/i.test(location.href)) {
-        //    
-        //    return
-        //}
         VkReactAPI.initialize()
+        if (location.host == "localhost" && /settings/i.test(location.href)) {
+            let btn = document.getElementById("install")
+            if (btn) {
+                btn.addEventListener("click", async () => {
+                    let link = btn.getAttribute("data-link")
+                    let settings = await VkReactAPI.call("settings.get", {"link": link})
+                    let result = JSON.parse(settings.result)
+                    VKReact.settings.importer(result)
+                })
+            }
+            return
+        }
+        else if (!location.href.startsWith("https://vk.com/")) return
         GM_addStyle(`
         .loader {
             border: 16px solid #f3f3f3; /* Light grey */
@@ -303,6 +312,9 @@ var VKReact = {
         #jcaticon {
             width:28px;
             height:28px;
+            color: rgb(81, 129, 184);
+        }
+        #vkicon {
             color: rgb(81, 129, 184);
         }
         #row {
@@ -457,7 +469,7 @@ var VKReact = {
         if (!user_info.token) {
             this.token = ''
         }
-        this.connected_to_ads = user_info.connected_to_ads || user_info.staff
+        this.vkreact_platinum = user_info.vkreact_platinum || user_info.staff
         this.gifManager._gif_manager = JSON.parse(user_info.gif_manager)
         if (!this.token) {
             let html = `
@@ -918,9 +930,9 @@ function getParamNames(func) {
 
 VKReact.plugins['menu'] = {
     modal_window: "menu",
-    render: function () {
+    render: async function () {
         let box_body = document.querySelector(".box_body")
-        let innerHTML
+        let innerHTML = ``
         switch (this.modal_window) {
             case "menu": {
                 innerHTML = `
@@ -953,13 +965,13 @@ VKReact.plugins['menu'] = {
                             <span id="jcatundertext">Обход away.php: ${VKReact.settings.users_userinfo ? "Включен" : "Выключен"}</span>
                         </div>
                     </div>
-                    <!-- <div class="jcat menuitem">
+                    <div class="jcat menuitem">
                         <div class="jcatcontent" onclick="VKReact.plugins.menu.modal('vkreact')"">
                             <img id="jcaticon" src="https://edge.dimden.dev/835d299b61.png">
-                            <span id="jcattext">Настройки VK React</span>
-                            <span id="jcatundertext">Управление конфигурациями</span>
+                            <span id="jcattext">VK React</span>
+                            <span id="jcatundertext">Platinum: ${VKReact.vkreact_platinum ? "Подключен" : "Не подключен"}</span>
                         </div>
-                    </div> -->
+                    </div>
                 </div>`
                 break
             }
@@ -994,12 +1006,12 @@ VKReact.plugins['menu'] = {
                     </label>
                 </div>
                 <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'feed_votes_without_vote')">
-                Показывать результаты опросов без голосования
-                <label class="switch" id="row_button">
-                 <input type="checkbox">
-                 <span class="vkreact_slider round"></span>
-                </label>
-            </div>`
+                    Показывать результаты опросов без голосования
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>`
                 break
             }
             case "server": {
@@ -1086,11 +1098,27 @@ VKReact.plugins['menu'] = {
                 `
                 break
             }
-            //case "vkreact": {
-            //    innerHTML = `
-            //    `
-            //    break
-            //}
+            case "vkreact": {
+                let settings = await VkReactAPI.call("settings.get_all", {"user_id": VKReact.user_id()})
+                let results = settings.results
+                results.forEach(it => {
+                    innerHTML += `
+                    <div class="jcat" data-link="${it.link}">
+                        <span onclick="VKReact.plugins.menu.spanSwitch(this)">${it.name}</span>
+                        <div id="row_button">
+                            <svg id="vkicon" style="position:relative;top:-5px;" onclick="VKReact.plugins.menu.uploadSettings(this)" onmouseover="showTooltip(this, { text: 'Выгрузить настройки', black: true, shift: [4, 5] });" xmlns="http://www.w3.org/2000/svg" width="21" height="20" fill="none" viewBox="0 0 21 20"><path fill="currentColor" d="M15.7717 8.7069a.7501.7501 0 0 1-1.0345 1.0862L10.7545 6v9.75a.75.75 0 0 1-1.5 0V6L5.2717 9.7931a.75.75 0 1 1-1.0345-1.0862l5.25-5a.75.75 0 0 1 1.0345 0l5.25 5Z"/></svg>
+                            <svg id="vkicon" style="position:relative;top:-5px;" onclick="VKReact.plugins.menu.getSettings(this)" onmouseover="showTooltip(this, { text: 'Загрузить настройки', black: true, shift: [4, 5] });" xmlns="http://www.w3.org/2000/svg" fill="none" height="20" viewBox="0 0 20 20" width="20"><g fill="currentColor"><path clip-rule="evenodd" d="m4 17.75c0-.4142.33579-.75.75-.75h10.5c.4142 0 .75.3358.75.75s-.3358.75-.75.75h-10.5c-.41421 0-.75-.3358-.75-.75z" fill-rule="evenodd"/><path d="m10.7493 2.72581c0-.40086-.3355-.72581-.74931-.72581-.41385 0-.74933.32495-.74933.72581l-.00001 9.72199-3.97032-3.97029c-.29289-.29289-.76777-.29289-1.06066 0s-.29289.76777 0 1.06066l5.24532 5.24533c.2929.2929.76781.2929 1.06071 0l5.2558-5.25585c.2929-.2929.2929-.76777 0-1.06067-.2929-.29289-.7678-.29289-1.0606 0l-3.9716 3.97152z"/></g></svg>
+                            <svg id="vkicon" style="position:relative;top:-5px;width:20px;height:20px;" onclick="VKReact.plugins.menu.copyPrimaryLink(this)" onmouseover="showTooltip(this, { text: 'Прямая ссылка', black: true, shift: [4, 5] });" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 20px; height: 20px;"><path d="M9.2 3c-1.285 0-2.158.001-2.833.056-.658.054-.994.151-1.229.271a3 3 0 00-1.311 1.311c-.12.235-.217.57-.27 1.229C3.5 6.542 3.5 7.415 3.5 8.7v2.6c0 .585.001.933.022 1.191.01.11.02.176.028.212v.097c0 .761 0 1.264.068 1.642a1.723 1.723 0 01-.526-.16 2 2 0 01-.874-.874C2 12.98 2 12.42 2 11.3V8.7c0-2.52 0-3.78.49-4.743A4.5 4.5 0 014.457 1.99C5.42 1.5 6.68 1.5 9.2 1.5h2c1.12 0 1.68 0 2.108.218a2 2 0 01.874.874c.07.137.117.288.15.466C13.96 3 13.472 3 12.75 3H9.2z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M5.1 7.7c0-1.12 0-1.68.218-2.108a2 2 0 01.874-.874C6.62 4.5 7.18 4.5 8.3 4.5h6c1.12 0 1.68 0 2.108.218a2 2 0 01.874.874c.218.428.218.988.218 2.108v7.6c0 1.12 0 1.68-.218 2.108a2 2 0 01-.874.874c-.428.218-.988.218-2.108.218h-6c-1.12 0-1.68 0-2.108-.218a2 2 0 01-.874-.874C5.1 16.98 5.1 16.42 5.1 15.3V7.7zM8.3 6h6c.585 0 .933.001 1.191.022.158.013.224.03.242.036a.5.5 0 01.21.209c.005.018.022.084.035.242.02.258.022.606.022 1.191v7.6c0 .585-.001.933-.022 1.191-.013.158-.03.224-.036.242a.5.5 0 01-.209.21 1.253 1.253 0 01-.242.035c-.258.02-.606.022-1.191.022h-6c-.585 0-.933-.001-1.191-.022a1.253 1.253 0 01-.242-.036.5.5 0 01-.21-.209 1.255 1.255 0 01-.035-.242c-.02-.258-.022-.606-.022-1.191V7.7c0-.585.001-.933.022-1.191.013-.158.03-.224.036-.242a.5.5 0 01.209-.21c.018-.005.084-.022.242-.035C7.367 6.002 7.715 6 8.3 6zm7.438.06l-.003-.002.003.001zm.203.202v.003-.003zm0 10.476v-.003a.014.014 0 010 .003zm-.203.203h-.003.003zm-8.876 0h.003-.003zm-.203-.203v-.003.003zm0-10.476v0zm.203-.203h.003a.05.05 0 00-.003 0z" fill="currentColor"></path></svg>
+                            <svg id="vkicon" style="position:relative;top:-5px;" onclick="VKReact.plugins.menu.removeSettings(this)" onmouseover="showTooltip(this, { text: 'Удалить настройки', black: true, shift: [4, 5] });" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.697 6.502a.75.75 0 00-.695.801l.5 7a.75.75 0 001.496-.106l-.5-7a.75.75 0 00-.801-.695zm4.606 0a.75.75 0 01.695.801l-.5 7a.75.75 0 01-1.496-.106l.5-7a.75.75 0 01.801-.695z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M2.25 3a.75.75 0 000 1.5h1.066l.958 10.44c.045.489.083.898.14 1.233.06.35.15.675.331.98.279.47.691.846 1.185 1.08.32.153.652.213 1.006.24.338.027.75.027 1.24.027h3.647c.491 0 .903 0 1.24-.026.355-.028.687-.088 1.007-.24a2.75 2.75 0 001.185-1.081c.18-.305.27-.63.33-.98.058-.335.096-.744.14-1.233l.96-10.44h1.065a.75.75 0 000-1.5h-4.587a3.251 3.251 0 00-6.326 0H2.25zm3.516 11.774c.048.525.08.876.127 1.145.044.26.093.385.142.469.127.213.314.384.539.49.087.043.216.08.48.1.272.021.624.022 1.151.022h3.59c.527 0 .879 0 1.152-.022.263-.02.392-.057.48-.1a1.25 1.25 0 00.538-.49c.05-.084.098-.209.142-.469.046-.27.08-.62.127-1.145L15.178 4.5H4.822l.944 10.274zM10 2c-.698 0-1.3.409-1.582 1h3.164A1.75 1.75 0 0010 2z" fill="currentColor"/></svg>
+                        </div>
+                    </div>
+                    `
+                })
+                innerHTML += `
+                    <svg style="margin:auto;display:flex;" onclick="VKReact.plugins.menu.addSettings()" id="vkicon" xmlns="http://www.w3.org/2000/svg" fill="none" height="28" viewBox="0 0 28 28" width="28"><path d="m14 2c6.6274 0 12 5.37258 12 12 0 6.6274-5.3726 12-12 12-6.62742 0-12-5.3726-12-12 0-6.62742 5.37258-12 12-12zm0 2c-5.52285 0-10 4.47715-10 10 0 5.5228 4.47715 10 10 10 5.5228 0 10-4.4772 10-10 0-5.52285-4.4772-10-10-10zm0 4c.5523 0 1 .44772 1 1v4h4c.5523 0 1 .4477 1 1s-.4477 1-1 1h-4v4c0 .5523-.4477 1-1 1s-1-.4477-1-1v-4h-4c-.55228 0-1-.4477-1-1s.44772-1 1-1h4v-4c0-.55228.4477-1 1-1z" fill="currentColor"/></svg>
+                `
+                break
+            }
         }
 
         box_body.innerHTML = innerHTML
@@ -1114,6 +1142,53 @@ VKReact.plugins['menu'] = {
         else {
             document.getElementById("box_title__icon")?.remove()
         }
+    },
+    uploadSettings: function (e) {
+        let link = e.parentElement.parentElement.getAttribute("data-link")
+        VkReactAPI.call("settings.upload", {"user_id": VKReact.user_id(), "link": link, "structure": JSON.stringify(VKReact.settings.exporter())})
+        Notifier.showEvent({
+            title: "VK React",
+            text: `Текущая конфигурация загружена на сервер`,
+        })
+    },
+    getSettings: async function (e) {
+        let link = e.parentElement.parentElement.getAttribute("data-link")
+        let settings = await VkReactAPI.call("settings.get", {"link": link, "user_id": VKReact.user_id()})
+        let result = JSON.parse(settings.result)
+        VKReact.settings.importer(result)
+        Notifier.showEvent({
+            title: "VK React",
+            text: `Настройки импортированы!`,
+        })
+    },
+    copyPrimaryLink: function (e) {
+        let link = e.parentElement.parentElement.getAttribute("data-link")
+        navigator.clipboard.writeText(`${VkReactAPI.apiURL}/settings/${link}`)
+        Notifier.showEvent({
+            title: "VK React",
+            text: `Ссылка успешно скопирована!`,
+        })
+    },
+    addSettings: async function () {
+        await VkReactAPI.call("settings.add", {"user_id": VKReact.user_id()})
+        VKReact.plugins.menu.render()
+    },
+    removeSettings: async function (e) {
+        let link = e.parentElement.parentElement.getAttribute("data-link")
+        await VkReactAPI.call("settings.remove", {"user_id": VKReact.user_id(), "link": link})
+        VKReact.plugins.menu.render()
+    },
+    spanSwitch: function (e) {
+        let txt = e.innerText
+        e.outerHTML = `<input onblur='VKReact.plugins.menu.spanReset(this, true)' value='${txt}' />`
+        e.focus()
+    },
+    spanReset: function (e, changed) {
+        if (changed) {
+            VkReactAPI.call("settings.rename", {"user_id": VKReact.user_id(), "link": e.parentElement.getAttribute("data-link"), "name": e.value})
+        }
+        let txt = e.value
+        e.outerHTML = `<span onclick='VKReact.plugins.menu.spanSwitch(this)'>${txt}</span>`
     },
     modal: function (name) {
         this.modal_window = name
@@ -1157,7 +1232,7 @@ VKReact.gifManager = {
 VKReact.plugins['get_ad_posts'] = {
     on: "wall",
     run: async () => {
-        if (VKReact.connected_to_ads) {
+        if (VKReact.vkreact_platinum) {
             let posts = await VkReactAPI.call("post_get_ads", { "user_id": vk.id })
             if (posts.status != 'OK') return
             VKReact.ads_posts = new Set(JSON.parse(posts.results))
@@ -1207,11 +1282,11 @@ VKReact.plugins['disable_ads'] = {
                             row.querySelector('.Post__copyright')) {
                             row.remove()
                         }
-                        if (VKReact.connected_to_ads && post_id && VKReact.ads_posts.has(post_id)) {
+                        if (VKReact.vkreact_platinum && post_id && VKReact.ads_posts.has(post_id)) {
                             row.remove()
                         }
                     }
-                    if (VKReact.connected_to_ads && !row.getAttribute("vkreact_actions_marked")) {
+                    if (VKReact.vkreact_platinum && !row.getAttribute("vkreact_actions_marked")) {
                         row.querySelector(".ui_actions_menu._ui_menu.ui_actions_menu--actionSheet")?.lastChild.after(se(`
                             <a class="ui_actions_menu_item" onclick="return VKReact.plugins.disable_ads.mark_as_ad(this);" tabindex="0" role="link">Отметить как рекламный</a>
                         `))

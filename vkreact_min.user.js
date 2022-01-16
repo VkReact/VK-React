@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  Help tool for vk
 // @author       SPRAVEDLIVO
-// @match        https://vk.com/*
+// @match        *://*/*
 // @icon         https://edge.dimden.dev/835d299b61.png
 // @grant        GM_addElement
 // @grant        GM_addStyle
@@ -25,6 +25,7 @@
 // @connect      localhost
 // @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK-React\VK-React\vkreact.js
 // @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK-React\VK-React\utils.js
+// @require      file://C:\Users\SPRAVEDLIVO\Desktop\work\js\VK-React\VK-React\icons.js
 //prod:
 // @connect      spravedlivo.dev
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/vkreact.js

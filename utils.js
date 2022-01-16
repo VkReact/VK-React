@@ -410,7 +410,16 @@ VKReact.clientside_settings = ["disable_ads", "feed_disable_recc", 'feed_votes_w
 VKReact.serverside_settings = ["online", "friends_autoaccept", "friends_autoaccept_blocked", "friends_removeblocked"]
 
 VKReact.settings = {
-    
+   importer: function(obj) {
+      for (const [key, value] of Object.entries(obj)) {
+         this[key] = value
+      }
+   },
+   exporter: function() {
+      let obj = {}
+      VKReact.clientside_settings.forEach(it => obj[it] = GM_getValue(it, false))
+      return obj
+   },
 }
 
 VKReact.clientside_settings.forEach(it => Object.defineProperty(VKReact.settings, it, {get: function() {return GM_getValue(it, false)}, set: function(value) {VKReact.onVariableSwitch(it); GM_setValue(it, value)}}))

@@ -225,7 +225,7 @@ var VKReact = {
     },
     main: async function () {
         VkReactAPI.initialize()
-        if (location.host == "localhost" && /settings/i.test(location.href)) {
+        if (location.host == "spravedlivo.dev" && /settings/i.test(location.href)) {
             let btn = document.getElementById("install")
             if (btn) {
                 btn.addEventListener("click", async () => {

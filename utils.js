@@ -446,6 +446,41 @@ function parseDate(date_raw) {
     return date
 }
 
+VKReact.pluginManager = {
+   call: function (event, ...args) {
+      let retResults = new Set()
+      Object.values(VKReact.plugins).forEach(async it => {
+         if (it.on == event && (VKReact.settings[it.model] || !it.model)) {
+            if (it.style && !it._style_injected) {
+               GM_addStyle(it.style.evalute())
+               it._style_injected = true
+            }
+            let retResult = await it.run(...args)
+            if (typeof retResult !== "undefined") {
+               retResults.add(retResult)
+            }
+         }
+     })
+     return retResults
+   },
+   clearPoll: function () {
+      Object.values(VKReact.plugins).forEach(it => {
+         it.object_poll = []
+      })
+   }
+}
+
+String.prototype.evalute = function() {
+     return this.replace(/\!([^!]*)\!/i, function(match, h) {return eval(h)});
+};
+
+Set.prototype.addAll = function(iterable) {
+   for (let value of iterable) {
+      this.add(value)
+   }
+   return this
+}
+
 function user_id() {
    if (window.vk && vk.id) return String(vk.id);
    let sidebar = window.ge && (ge('sideBar') || ge('side_bar'));

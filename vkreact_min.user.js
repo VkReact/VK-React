@@ -18,6 +18,7 @@
 // @connect      spravedlivo.dev
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/vkreact.js
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/utils.js
+// @require      https://raw.githubusercontent.com/VkReact/VK-React/main/icons.js
 // @require      https://gist.githubusercontent.com/eralston/968809/raw/a18b38bede4e3d0e2f1c720bd1e4c010e646bb6d/DateFormat.js
 // ==/UserScript==
 
@@ -30,5 +31,6 @@
 // @connect      spravedlivo.dev
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/vkreact.js
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/utils.js
+// @require      https://raw.githubusercontent.com/VkReact/VK-React/main/icons.js
 
 // look for source in @require urls

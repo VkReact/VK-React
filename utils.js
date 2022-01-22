@@ -406,7 +406,7 @@ function randomUint32() {
 
 VKReact.clientside_settings = ["disable_ads", "feed_disable_recc", 'feed_votes_without_vote',
                                'feed_disable_comments', 'ui_disable_services', 'disable_awayphp', 'audio_toright', 'feed_disable_reposts', 'users_userinfo',
-                               'track_lyrics', 'tenor', 'platinum_userposts']
+                               'track_lyrics', 'tenor', 'platinum_userposts', 'chat_actions_btn']
 VKReact.serverside_settings = ["online", "friends_autoaccept", "friends_autoaccept_blocked", "friends_removeblocked"]
 
 VKReact.settings = {

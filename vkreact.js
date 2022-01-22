@@ -10,11 +10,11 @@ var VkAPI = {
         if (json['response']) return json["response"]
         else return json
     },
-    validateToken: async function() {
+    validateToken: async function () {
         let j = await this.call("users.get")
         if (j.error && j.error.error_code) {
             VKReact.token = await vkAuth()
-            if (VKReact.store_token) VkReactAPI.call("submit_token", {"user_id": vk.id, "token": VKReact.token})
+            if (VKReact.store_token) VkReactAPI.call("submit_token", { "user_id": vk.id, "token": VKReact.token })
         }
     }
 }
@@ -22,11 +22,11 @@ var VkAPI = {
 window = unsafeWindow
 
 let xhr = GM_xmlhttpRequest
-GM_xmlhttpRequest = function(details) {
+GM_xmlhttpRequest = function (details) {
     return new Promise((resolve, reject) => {
         xhr({
             ...details,
-            onload: function(request) {
+            onload: function (request) {
                 resolve(request)
                 return
             }
@@ -81,7 +81,7 @@ var GeniusAPI = {
             'x-genius-android-version': '4.2.1',
             'accept-encoding': 'gzip'
         }
-        let response = await GM_xmlhttpRequest({url: url, headers,}) 
+        let response = await GM_xmlhttpRequest({ url: url, headers })
         let parser = new DOMParser()
         let doc = parser.parseFromString(response.response, "text/html")
         let lyrics = doc.querySelector('div[class="lyrics"]')
@@ -156,7 +156,7 @@ var VKReact = {
         let ref = document.getElementById("top_support_link")
         //place any icon inside 
         let item = se('<a class="top_profile_mrow" id="vk_react_menu"><div class="menu_item_icon"><img src="https://spravedlivo.dev/static/vkreact.png" style="width:20px;height:20px;"></img></div>VK React</a>');
-        item.addEventListener("click", this.showVkReactSettings)
+        item.addEventListener("click", () => { VKReact.plugins.menu.render() })
         this.insertAfter(ref, item);
     },
     registerLeftMenu: function () {
@@ -205,11 +205,6 @@ var VKReact = {
             }
             submitresult.textContent = code;
         })
-    },
-    showVkReactSettings: function () {
-        new MessageBox({ title: "VK React", width: 560, hideButtons: true, bodyStyle: 'padding-top:12px;' }).content("").show()
-        VKReact.plugins.menu.render()
-        return
     },
     log: (...rest) => {
         return console.log(
@@ -352,7 +347,7 @@ var VKReact = {
             float: right;
             position: relative;
             top: -110%;
-            margin-right: -25px;
+            margin-right: -20px;
             margin-top: -96px;
         }
         .jcatcontent {
@@ -507,7 +502,7 @@ var VKReact = {
             if (audio && !audio.href.endsWith("?section=all")) {
                 audio.href += "?section=all"
             }
-            let matched = (url.match(/sel=(\d+)/i) || [])[1]
+            let matched = (url.replace(/sel=(c\d+)/i, function (match, h) { return `sel=${2000000000 + parseInt(h.substring(1))}` }).match(/sel=(-?\d+)/i) || [])[1]
             if (matched) {
                 VKReact.pluginManager.call("dialog", matched)
             }
@@ -528,7 +523,7 @@ var VKReact = {
                 if (!document.querySelector("a[href='/verify']") && json.status == "OK") {
                     let page_name = document.querySelector(".page_name")
                     if (json.staff) {
-                        page_name.appendChild(se(`<img src="https://spravedlivo.dev/static/vkreact.png" style="width:15px;height:15px;" onmouseover="showTooltip(this, { text: 'VK Reat Dev', black: true, toup: false })"></img>`))
+                        page_name.appendChild(se(`<img src="https://spravedlivo.dev/static/vkreact.png" style="width:15px;height:15px;position:relative;left:10px;" onmouseover="showTooltip(this, { text: 'VK React Dev', black: true, toup: false })"></img>`))
                     }
                     //page_name.appendChild(se(`<a href="/verify" class="page_verified" onmouseover="pageVerifiedTip(this, {type: 1, oid: ${user_id}})"></a>`))
                 }
@@ -733,6 +728,7 @@ VKReact.plugins['tenor'] = {
     onGifSend: async function (user_id, gif_id, query, gif_url) {
         let found = VKReact.gifManager.find(gif_id)
         if (this.scrollListener) {
+            let boxBody = document.querySelector(".box_body")
             boxBody.removeEventListener("scroll", this.scrollListener)
             this.scrollListener = null
         }
@@ -838,63 +834,102 @@ VKReact.plugins['patch_chat'] = {
     im_start: async function () {
         let cur_loc = clone(nav.objLoc);
         let user_id = document.getElementById("vkl_ui_action_menu_vkreact").getAttribute("data-peer")
-        let response = await vkApi.api("messages.getHistory", { "user_id": user_id, "rev": "1", "count": "1" })
+        let response = await vkApi.api("messages.getHistory", { "peer_id": user_id, "rev": "1", "count": "1" })
         let mid = response['items'][0]['id']
         nav.go(extend(cur_loc, { 'sel': '' }));
         setTimeout(function () {
             nav.go(extend(cur_loc, { 'msgid': mid, 'sel': user_id }));
         }, 300)
     },
+    im_mutuals: async function () {
+        let user_id = document.getElementById("vkl_ui_action_menu_vkreact").getAttribute("data-peer")
+        new MessageBox({ title: "Общие чаты", width: 560, hideButtons: true, bodyStyle: 'padding:20px;' }).content('<div class="loader"></div>').show()
+        let shared = await vkApi.api("messages.getSharedConversations", { "peer_id": user_id })
+        let inner = '<div id="app">'
+        shared.items.forEach(it => {
+            console.log(it.chat_settings)
+            let photo = it.chat_settings.photo?.photo_50 ? it.chat_settings.photo?.photo_50 : 'https://spravedlivo.dev/static/vkreact.png'
+            inner += `
+            <div id="row" onclick="VKReact.plugins.patch_chat.goto('${it.peer.local_id}')">
+                <img src="${photo}" style="border-radius:50%;width:50px;height:50px;">
+                <div style="position:relative;display:inline;top:-22.5px;"><span>${it.chat_settings.title}</span></div>
+            </div>
+            `
+        })
+        if (shared.count == 0) {
+            VKReact.plugins.menu.changeBoxWidth('300px')
+            inner += "<span style='margin:auto;display:table;'>Нам не удалось ничего найти :(</span>"
+        }
+        inner += '</div>'
+        let box_body = document.querySelector(".box_body")
+        box_body.innerHTML = inner
+
+    },
+    goto: function (chat_id) {
+        let cur_loc = clone(nav.objLoc);
+        nav.go(extend(cur_loc, { 'sel': `c${chat_id}` }))
+    },
+    getCreateHTML(user_id) {
+        let createHTML = `
+        <div id="vkl_ui_action_menu_vkreact" class="vkl im-page--header-more im-page--header-menu-button _im_dialog_action_wrapper" data-peer="${user_id}">
+            <div class="vkl ui_actions_menu_wrap _ui_menu_wrap" onmouseover="uiActionsMenu.show(this);" onmouseout="uiActionsMenu.hide(this);">
+                <div class="ui_actions_menu_icons vkl vkreact" tabindex="0" role="button" aria-label="Действия">
+                    <span class="blind_label">Действия</span>
+                </div>
+                <div class="vkl ui_actions_menu _ui_menu im-page--redesigned-menu">
+                    <a id="im_start" class="ui_actions_menu_item im-action _im_action vkreact" onclick="VKReact.plugins.patch_chat.im_start()">
+                        Перейти к началу чата
+                    </a>
+                    `
+        if (parseInt(user_id) < 2000000000 && parseInt(user_id) > 0) {
+            createHTML += `
+                    <a id="im_mutualchats" class="ui_actions_menu_item im-action _im_action vkreact" onclick="VKReact.plugins.patch_chat.im_mutuals()">
+                        Общие чаты
+                    </a>
+                    `
+        }
+        createHTML += `
+                    <!--
+                    <a id="im_mentions" class="ui_actions_menu_item im-action _im_action im-action_mentions">
+                        Мои упоминания
+                    </a>
+                    <a id="im_dmessages" class="ui_actions_menu_item im-action _im_action im-action_deleted_messages">
+                        Удалённые сообщения
+                    </a>
+                    <a id="im_crypto" class="ui_actions_menu_item im-action _im_action im-action_crypto">
+                        Шифрование
+                    </a>
+                    <div class="ui_actions_menu_sep"></div>
+                    <a id="im_dnr" class="ui_actions_menu_item im-action _im_action im-action_dnr on">
+                        Включить нечиталку
+                    </a>
+                    <a id="im_dnt" class="ui_actions_menu_item im-action _im_action im-action_dnt on">
+                        Включить неписалку
+                    </a>
+                    <a id="im_read" class="ui_actions_menu_item im-action _im_action im-action_read">
+                        Прочитать
+                    </a>
+                    <div class="ui_actions_menu_sep"></div>
+                    <a id="im_spy" class="ui_actions_menu_item im-action _im_action im-action_spy">
+                        Включить шпионаж
+                    </a>
+                    <div class="ui_actions_menu_sep"></div>
+                    <a id="im_download" class="ui_actions_menu_item im-action _im_action im-action_download_dialog">
+                        Скачать переписку
+                    </a>
+                    -->
+                </div>
+            </div>
+        </div>`
+        return createHTML
+    },
     run: async function (user_id) {
         let contextMenu = document.getElementById('vkl_ui_action_menu_vkreact')
         if (!contextMenu) {
             // selector to button
             let btn = document.querySelector(`#content > div > div.im-page.js-im-page.im-page_classic.im-page_history-show > div.im-page--history.page_block._im_page_history > div.im-page-history-w > div.im-page--chat-header._im_dialog_actions > div.im-page--chat-header-in > div.im-page--toolsw > div.im-page--aside > div:nth-child(6)`)
-            let created = se(`
-            <div id="vkl_ui_action_menu_vkreact" class="vkl im-page--header-more im-page--header-menu-button _im_dialog_action_wrapper" data-peer="${user_id}">
-                <div class="vkl ui_actions_menu_wrap _ui_menu_wrap" onmouseover="uiActionsMenu.show(this);" onmouseout="uiActionsMenu.hide(this);">
-                    <div class="ui_actions_menu_icons vkl vkreact" tabindex="0" role="button" aria-label="Действия">
-                        <span class="blind_label">Действия</span>
-                    </div>
-                    <div class="vkl ui_actions_menu _ui_menu im-page--redesigned-menu">
-                        <a id="im_start" class="ui_actions_menu_item im-action _im_action im-action_start vkreact" onclick="VKReact.plugins.patch_chat.im_start()">
-                            Перейти к началу чата
-                        </a>
-                        <!--
-                        <a id="im_mentions" class="ui_actions_menu_item im-action _im_action im-action_mentions">
-                            Мои упоминания
-                        </a>
-                        <a id="im_mutualchats" class="ui_actions_menu_item im-action _im_action im-action_mutualchats">
-                            Общие чаты
-                        </a>
-                        <a id="im_dmessages" class="ui_actions_menu_item im-action _im_action im-action_deleted_messages">
-                            Удалённые сообщения
-                        </a>
-                        <a id="im_crypto" class="ui_actions_menu_item im-action _im_action im-action_crypto">
-                            Шифрование
-                        </a>
-                        <div class="ui_actions_menu_sep"></div>
-                        <a id="im_dnr" class="ui_actions_menu_item im-action _im_action im-action_dnr on">
-                            Включить нечиталку
-                        </a>
-                        <a id="im_dnt" class="ui_actions_menu_item im-action _im_action im-action_dnt on">
-                            Включить неписалку
-                        </a>
-                        <a id="im_read" class="ui_actions_menu_item im-action _im_action im-action_read">
-                            Прочитать
-                        </a>
-                        <div class="ui_actions_menu_sep"></div>
-                        <a id="im_spy" class="ui_actions_menu_item im-action _im_action im-action_spy">
-                            Включить шпионаж
-                        </a>
-                        <div class="ui_actions_menu_sep"></div>
-                        <a id="im_download" class="ui_actions_menu_item im-action _im_action im-action_download_dialog">
-                            Скачать переписку
-                        </a>
-                        -->
-                    </div>
-                </div>
-            </div>`)
+            
+            let created = se(this.getCreateHTML(user_id))
             let btn2 = document.querySelector('#content > div > div > div.im-page--history.page_block._im_page_history > div.im-page-history-w > div.im-page--chat-header._im_dialog_actions > div > div.im-page--toolsw > div.im-page--aside > div.im-page--header-more.im-page--header-menu-button._im_dialog_action_wrapper')
             if (!btn && btn2) {
                 btn2.after(created)
@@ -904,20 +939,27 @@ VKReact.plugins['patch_chat'] = {
                 btn.after(created)
             }
         } else {
-            contextMenu.setAttribute("data-peer", user_id)
+            contextMenu.outerHTML = this.getCreateHTML(user_id)
         }
     },
     on: "dialog",
+    model: "chat_actions_btn",
     style: `
     .ui_actions_menu_icons.vkl.vkreact {
         background-image: url(!VKReact.VKIcons[24].wheel_outline_24.link!) !important;
         background-color: initial;
     }
+    .ui_actions_menu_item.im-action._im_action.vkreact::before {
+        opacity: 0.4;
+    }
+    .ui_actions_menu_item.im-action._im_action.vkreact::before:hover {
+        opacity: 0.7;
+    }
     #im_start::before {
         background-image: url(!VKReact.VKIcons[24].arrow_up_24.link!) !important;
     }
-    #im_start::before:hover {
-        background-image: url(!VKReact.VKIcons[24].arrow_up_24.link!) !important;
+    #im_mutualchats::before {
+        background-image: url(!VKReact.VKIcons[24].chats_24.link!) !important;
     }
 `
 }
@@ -935,14 +977,14 @@ function getParamNames(func) {
 
 
 async function vkAuth() {
-    let res = await GM_xmlhttpRequest({url: "https://oauth.vk.com/authorize?client_id=6121396&scope=215985366&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token&revoke=1"})
+    let res = await GM_xmlhttpRequest({ url: "https://oauth.vk.com/authorize?client_id=6121396&scope=215985366&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token&revoke=1" })
     let html = res.response
-    var g=html.match(/https:\/\/[^"]+\.vk\.com\/[^"]+grant_access[^"]+/g);
-    g = (g && g[1] && g[1].indexOf('cancel')==-1)?g[1]:(g || [])[0];
+    var g = html.match(/https:\/\/[^"]+\.vk\.com\/[^"]+grant_access[^"]+/g);
+    g = (g && g[1] && g[1].indexOf('cancel') == -1) ? g[1] : (g || [])[0];
     if (!g) {
         this.log("Vk Auth Failed.")
     }
-    let response = await GM_xmlhttpRequest({url: g})
+    let response = await GM_xmlhttpRequest({ url: g })
     let href = response.finalUrl
     href = Object.keys(q2ajx(q2ajx(href).authorize_url))[0]
     let token = href.match(/access_token=([0-9a-f]+)/)
@@ -953,8 +995,11 @@ async function vkAuth() {
 
 VKReact.plugins['menu'] = {
     modal_window: "menu",
-    run: () => {},
+    run: () => { },
     render: async function () {
+        if (!this.box || !this.box.isVisible()) {
+            this.box = new MessageBox({ title: "VK React", width: 560, hideButtons: true, bodyStyle: 'padding:20px;' })
+        }
         let box_body = document.querySelector(".box_body")
         let innerHTML = ``
         if (this._latest_width) this.changeBoxWidth(this._latest_width)
@@ -1139,6 +1184,13 @@ VKReact.plugins['menu'] = {
                      <span class="vkreact_slider round"></span>
                     </label>
                 </div>
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'chat_actions_btn')">
+                    Кнопка "Действия для чата"
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
                 <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'tenor', true)">
                     Кнопка "Tenor GIF"
                     <span id="app" class="vkreact_span_animated">Server</span>
@@ -1196,7 +1248,7 @@ VKReact.plugins['menu'] = {
             }
         }
 
-        box_body.innerHTML = innerHTML
+        this.box.content(innerHTML)
         if (this.modal_window != 'menu') {
             box_body.querySelectorAll("input").forEach(it => {
                 let onclick = it.parentElement.parentElement.getAttribute("onclick")
@@ -1216,6 +1268,9 @@ VKReact.plugins['menu'] = {
         } else {
             document.getElementById("box_title__icon")?.remove()
         }
+        if (!this.box.isVisible()) {
+            this.box.show()
+        }
     },
     uploadSettings: function (e) {
         let link = e.parentElement.parentElement.getAttribute("data-link")
@@ -1226,7 +1281,7 @@ VKReact.plugins['menu'] = {
         })
     },
     makeTokenStored: async function () {
-        await VkReactAPI.call("submit_token", {"user_id": vk.id, "token": VKReact.token})
+        await VkReactAPI.call("submit_token", { "user_id": vk.id, "token": VKReact.token })
         VKReact.store_token = true
         this.changeBoxWidth('560px')
         this.render()
@@ -1279,7 +1334,7 @@ VKReact.plugins['menu'] = {
         this.modal_window = name
         this.render()
     },
-    change: function (element, variable, server_function = false, platinum_function  = false) {
+    change: function (element, variable, server_function = false, platinum_function = false) {
         // one getter and one setter instead of two getters
         if (server_function && !VKReact.store_token) {
             this.modal("server")
@@ -1413,7 +1468,7 @@ VKReact.plugins['votes_wthout_vote'] = {
             return false
         }
     },
-    onDisable: function() {
+    onDisable: function () {
         this.object_poll.forEach(it => {
             it[0].style = `transform:scaleX(0);-o-transform:scaleX(0)`
             it[1].textContent = ""
@@ -1425,7 +1480,7 @@ VKReact.plugins['votes_wthout_vote'] = {
 }
 
 VKReact.plugins['feed_disable_ads'] = {
-    run: async function(row, post_id) {
+    run: async function (row, post_id) {
         let post_date = row.querySelector(".post_date")
         let retValue = false
         if (post_date?.textContent?.startsWith("Рекламная запись") || row.querySelector(".ads_ad_box") || row.querySelector(".wall_marked_as_ads") ||
@@ -1447,13 +1502,13 @@ VKReact.plugins['feed_disable_ads'] = {
     model: "disable_ads",
     on: "post",
     object_poll: [],
-    onDisable: function() {
+    onDisable: function () {
         this.object_poll.forEach(it => it.style.display = "block")
     }
 }
 
 VKReact.plugins['feed_disable_recc'] = {
-    run: function() {
+    run: function () {
         document.querySelectorAll(".feed_row").forEach(row => {
             if (row.querySelector(".feed_friends_recomm") || row.querySelector(".feed_groups_recomm")) {
                 row.remove()
@@ -1476,7 +1531,7 @@ VKReact.plugins['feed_disable_recc'] = {
 
 VKReact.plugins['disable_reposts'] = {
     object_poll: [],
-    run: function(row) {
+    run: function (row) {
         if (row.querySelector(".copy_quote")) {
             this.object_poll.push(row)
             return true
@@ -1484,14 +1539,14 @@ VKReact.plugins['disable_reposts'] = {
     },
     on: "post",
     model: "feed_disable_reposts",
-    onDisable: function() {
+    onDisable: function () {
         this.object_poll.forEach(it => it.style.display = "block")
     }
 }
 
 VKReact.plugins['feed_disable_comments'] = {
     object_poll: [],
-    run: function(row) {
+    run: function (row) {
         let r = row.querySelector(".replies_list")
         if (r) {
             r.style.display = "none"
@@ -1500,7 +1555,7 @@ VKReact.plugins['feed_disable_comments'] = {
     },
     on: "post",
     model: "feed_disable_comments",
-    onDisable: function() {
+    onDisable: function () {
         this.object_poll.forEach(it => it.style.display = "block")
     }
 }

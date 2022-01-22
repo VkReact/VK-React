@@ -406,7 +406,7 @@ function randomUint32() {
 
 VKReact.clientside_settings = ["disable_ads", "feed_disable_recc", 'feed_votes_without_vote',
                                'feed_disable_comments', 'ui_disable_services', 'disable_awayphp', 'audio_toright', 'feed_disable_reposts', 'users_userinfo',
-                               'track_lyrics', 'tenor']
+                               'track_lyrics', 'tenor', 'platinum_userposts']
 VKReact.serverside_settings = ["online", "friends_autoaccept", "friends_autoaccept_blocked", "friends_removeblocked"]
 
 VKReact.settings = {
@@ -471,7 +471,7 @@ VKReact.pluginManager = {
 }
 
 String.prototype.evalute = function() {
-     return this.replace(/\!([^!]*)\!/i, function(match, h) {return eval(h)});
+     return this.replace(/\!(.+?)\!/g, function(match, h) {return eval(h)});
 };
 
 Set.prototype.addAll = function(iterable) {

@@ -4,7 +4,7 @@
 // @description  Help tool for vk
 // @author       SPRAVEDLIVO
 // @match        *://*/*
-// @icon         https://edge.dimden.dev/835d299b61.png
+// @icon         https://spravedlivo.dev/static/vkreact.png
 // @grant        GM_addElement
 // @grant        GM_addStyle
 // @grant        GM_getValue
@@ -16,6 +16,7 @@
 // @version      1.0
 // @connect      genius.com
 // @connect      spravedlivo.dev
+// @connect      vk.com
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/vkreact.js
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/utils.js
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/icons.js

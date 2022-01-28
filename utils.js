@@ -406,7 +406,7 @@ function randomUint32() {
 
 VKReact.clientside_settings = ["disable_ads", "feed_disable_recc", 'feed_votes_without_vote',
                                'feed_disable_comments', 'ui_disable_services', 'disable_awayphp', 'audio_toright', 'feed_disable_reposts', 'users_userinfo',
-                               'track_lyrics', 'tenor', 'platinum_userposts', 'chat_actions_btn']
+                               'track_lyrics', 'tenor', 'platinum_userposts', 'chat_actions_btn', 'ads_shortlink_filter', 'ads_referal_filter', 'ads_filter_list']
 VKReact.serverside_settings = ["online", "friends_autoaccept", "friends_autoaccept_blocked", "friends_removeblocked"]
 
 VKReact.settings = {
@@ -417,12 +417,12 @@ VKReact.settings = {
    },
    exporter: function() {
       let obj = {}
-      VKReact.clientside_settings.forEach(it => obj[it] = GM_getValue(it, false))
+      VKReact.clientside_settings.forEach(it => obj[it] = GM_getValue(it))
       return obj
    },
 }
 
-VKReact.clientside_settings.forEach(it => Object.defineProperty(VKReact.settings, it, {get: function() {return GM_getValue(it, false)}, set: function(value) {VKReact.onVariableSwitch(it); GM_setValue(it, value)}}))
+VKReact.clientside_settings.forEach(it => Object.defineProperty(VKReact.settings, it, {get: function() {return GM_getValue(it)}, set: function(value) {VKReact.onVariableSwitch(it); GM_setValue(it, value)}}))
 VKReact.serverside_settings.forEach(it => Object.defineProperty(VKReact.settings, it, {
    get: function() {
       return this[`_${it}`]
@@ -431,7 +431,6 @@ VKReact.serverside_settings.forEach(it => Object.defineProperty(VKReact.settings
       this[`_${it}`] = value
       let obj = {"user_id":vk.id}
       Object.defineProperty(obj, it, {value: VKReact.settings["_"+it], enumerable: true})
-      console.log(obj)
       VkReactAPI.call("update_user", obj)
    }
 }))

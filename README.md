@@ -40,3 +40,6 @@ This repository contains source code for extention client. We do not reveal sour
 | Track lyrics | UI | Show lyrics of track (genius api) |
 | Tenor gifs | UI | Gifs from tenor like in discord |
 | Configs | VK React | Cloud configs |
+| Filter shortlinks | Post ads filter | Remove posts with goo.gl, bit.ly etc. |
+| Filter referal | Post ads filter | Remove posts with ali.pub etc. |
+| Custom filter | Post ads filter | Custom filter for post ads, separated by comma |

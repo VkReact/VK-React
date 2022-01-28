@@ -281,6 +281,10 @@ var VKReact = {
             width: 80%;
             border:none;
         }
+        #enteredlink::placeholder {
+            color: white;
+            opacity: 0.4;
+        }
         #submitbutton {
             font-family: vkbold;
             background-color: var(--blue_400);
@@ -440,11 +444,11 @@ var VKReact = {
         }
         @font-face {
             font-family: vkmedium;
-            src: url('https://cors-anywhere.dimden.dev/https://github.com/VkReact/VK-React/raw/main/fonts/VKSansMedium.otf');
+            src: url('https://spravedlivo.dev/static/VKSansMedium.ttf');
         }
         @font-face {
             font-family: vkbold;
-            src: url('https://cors-anywhere.dimden.dev/https://github.com/VkReact/VK-React/raw/main/fonts/VKSansDemiBold.otf');
+            src: url('https://spravedlivo.dev/static/VKSansDemiBold.otf');
         }
         `)
         let user_info = this.uuid ? await VkReactAPI.call("get_user", { "user_id": this.user_id() }) : await VkReactAPI.call("get_user", { "user_id": this.user_id(), "register": true }, false, true)
@@ -656,7 +660,7 @@ VKReact.plugins['tenor'] = {
     showTenor: function () {
         let user_id = document.getElementById("vkreact_tenorgif").getAttribute("data-peer")
         let html = `
-        <input type="text" placeholder="Поиск по Tenor" id="tenorinput" onkeyup="VKReact.plugins.tenor.onTenorInput(this, ${user_id})"> <!-- сука сука сука сука сука -->
+        <input type="text" placeholder="Поиск по Tenor" id="tenorinput" onkeyup="VKReact.plugins.tenor.onTenorInput(this, ${user_id})">
         <div id="tenorgifs"></div>
         `
         new MessageBox({ title: "Tenor", width: 500, hideButtons: true, bodyStyle: 'padding:20px;height:500px;overflow-y:scroll;' }).content(html).show()
@@ -847,7 +851,6 @@ VKReact.plugins['patch_chat'] = {
         let shared = await vkApi.api("messages.getSharedConversations", { "peer_id": user_id })
         let inner = '<div id="app">'
         shared.items.forEach(it => {
-            console.log(it.chat_settings)
             let photo = it.chat_settings.photo?.photo_50 ? it.chat_settings.photo?.photo_50 : 'https://spravedlivo.dev/static/vkreact.png'
             inner += `
             <div id="row" onclick="VKReact.plugins.patch_chat.goto('${it.peer.local_id}')">
@@ -995,6 +998,7 @@ async function vkAuth() {
 
 VKReact.plugins['menu'] = {
     modal_window: "menu",
+    window_history: new Set(["menu"]),
     run: () => { },
     render: async function () {
         if (!this.box || !this.box.isVisible()) {
@@ -1056,6 +1060,9 @@ VKReact.plugins['menu'] = {
                      <input type="checkbox">
                      <span class="vkreact_slider round"></span>
                     </label>
+                </div>
+                <div class="jcat" onclick="VKReact.plugins.menu.modal('ads_filter')">
+                    Фильтры
                 </div>
                 <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'platinum_userposts', false, true)">
                     Пользовательская база рекламных постов
@@ -1246,11 +1253,37 @@ VKReact.plugins['menu'] = {
                 <div style="display:table;margin:auto;margin-top:10px;"><button id="submitbutton">Купить</button></div>`
                 break
             }
+            case "ads_filter": {
+                innerHTML = `
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'ads_shortlink_filter')">
+                    Фильтр коротких ссылок
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'ads_referal_filter')" style="padding-bottom:10px;">
+                    Фильтр реферальных ссылок
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="vkuiSpacing vkuiSpacing--ios vkuiSpacing--separator vkuiSpacing--separator-center" style="height: 8px;"></div>
+                <span id="jcattext">Собственный фильтр</span>
+                <span id="jcatundertext" style="padding-left:8px;">Посты, содержащие эти фразы будут удалены (не чувствителен к регистру)</span>
+                <div id="enterlinkhere" style="margin-top:10px;">
+                    <input type="text" placeholder="Фильтрация" id="enteredlink" value="${(VKReact.settings.ads_filter_list || "")}" oninput="VKReact.plugins.menu.filterInput(this)">
+                </div>
+                `
+                break
+            }
         }
 
         this.box.content(innerHTML)
         if (this.modal_window != 'menu') {
             box_body.querySelectorAll("input").forEach(it => {
+                if (it.getAttribute("type") != "checkbox") return
                 let onclick = it.parentElement.parentElement.getAttribute("onclick")
                 let param = getParamNames(onclick)[1]
                 if (param) {
@@ -1262,7 +1295,7 @@ VKReact.plugins['menu'] = {
             // patch button
             if (!ge("box_title__icon")) {
                 GM_addStyle("#box_title__icon {float:left;color:var(--icon_medium);height:50%;opacity:75%;cursor:pointer;margin-left:-20px;} #box_title__icon:hover {opacity:100%;}")
-                let shiny = se(VKReact.VKIcons[24].back_24.html.inject('class="box_x_button" onclick="VKReact.plugins.menu.modal(\'menu\')" id="box_title__icon"'))
+                let shiny = se(VKReact.VKIcons[24].back_24.html.inject('class="box_x_button" onclick="VKReact.plugins.menu.back()" id="box_title__icon"'))
                 document.getElementsByClassName("box_title")[0].appendChild(shiny)
             }
         } else {
@@ -1271,6 +1304,11 @@ VKReact.plugins['menu'] = {
         if (!this.box.isVisible()) {
             this.box.show()
         }
+    },
+    filterInput: function (e) {
+        let inp = e.value
+        VKReact.settings.ads_filter_list = inp
+        VKReact.plugins.text_filter.filters = inp.split(',')
     },
     uploadSettings: function (e) {
         let link = e.parentElement.parentElement.getAttribute("data-link")
@@ -1331,8 +1369,14 @@ VKReact.plugins['menu'] = {
         e.outerHTML = `<span onclick='VKReact.plugins.menu.spanSwitch(this)'>${txt}</span>`
     },
     modal: function (name) {
+        this.window_history.add(name)
         this.modal_window = name
         this.render()
+    },
+    back: function () {
+        let m = this.modal_window
+        this.modal([...this.window_history][this.window_history.size - 2])
+        this.window_history.delete(m)
     },
     change: function (element, variable, server_function = false, platinum_function = false) {
         // one getter and one setter instead of two getters
@@ -1436,6 +1480,47 @@ VKReact.plugins['disable_awayphp'] = {
     },
     on: "timer",
     model: "disable_awayphp"
+}
+
+//VKReact.plugins['patch_stickers'] = {
+//    run: function() {
+//        let messages = document.querySelectorAll(".im-mess._im_mess")
+//        messages.forEach(it => {
+//            let sticker_row = it.querySelector(".im_sticker_row")
+//            if (!sticker_row) return // coming soon
+//            let sticker_att = sticker_row.querySelector(".sticker_img.im_gift")
+//            if (sticker_att.getAttribute("vkreact_marked")) return
+//            sticker_row.parentElement.before(se(`<img src="${VKReact.VKIcons[20].favorite_20.link}"></img>`))
+//            sticker_att.style.position = "relative"
+//            sticker_att.style.top = "-20px"
+//            sticker_att.setAttribute("vkreact_marked", true) //almost there
+//        })
+//    },
+//    on: "timer"
+//},
+
+VKReact.plugins['text_filter'] = {
+    filters: [],
+    start_emitted: false,
+    short_links: ['bit.ly', 'goo.gl', 't1p.de', 'is.gd', 'bit.do'],
+    referal_links: ['ali.pub'],
+    run: function(row) {
+        if (!this.start_emitted) {
+            this.start_emitted = true
+            this.filters = (VKReact.settings.ads_filter_list || "").split(",")
+        }
+        let wall_text = row.querySelector(".wall_post_text")
+        if (!wall_text) return
+        wall_text = wall_text.textContent
+        if (!wall_text) return
+        let filter = [...this.filters, ...(VKReact.settings.ads_shortlink_filter ? this.short_links : []), ...(VKReact.settings.ads_referal_filter ? this.referal_links : [])]
+        filter.forEach(it => {
+            if (it && wall_text.toLowerCase().includes(it.toLowerCase())) {
+                row.remove()
+            }
+        })
+    },
+    on: "post"
 }
 
 VKReact.plugins['votes_wthout_vote'] = {

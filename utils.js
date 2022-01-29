@@ -404,9 +404,12 @@ function randomUint32() {
 }
 
 
-VKReact.clientside_settings = ["disable_ads", "feed_disable_recc", 'feed_votes_without_vote',
-                               'feed_disable_comments', 'ui_disable_services', 'disable_awayphp', 'audio_toright', 'feed_disable_reposts', 'users_userinfo',
-                               'track_lyrics', 'tenor', 'platinum_userposts', 'chat_actions_btn', 'ads_shortlink_filter', 'ads_referal_filter', 'ads_filter_list']
+VKReact.clientside_settings = {"disable_ads":false, "feed_disable_recc":false, 'feed_votes_without_vote':false,
+                               'feed_disable_comments':false, 'ui_disable_services':false, 'disable_awayphp':false, 'audio_toright':false, 'feed_disable_reposts':false, 'users_userinfo':false,
+                               'track_lyrics':false, 'tenor':false, 'platinum_userposts':false, 'chat_actions_btn':false, 'ads_shortlink_filter':false, 'ads_referal_filter':false,
+                               'ads_filter_list':false, 'stickers_remove':"[]", 'stickers_removeall':false,
+                               'dr_manager':"{}", 'dr_ls':false, 'dr_chat':false, 'dr_group':false,
+                               'dt_manager':"{}", 'dt_ls':false, 'dt_chat':false, 'dt_group':false}
 VKReact.serverside_settings = ["online", "friends_autoaccept", "friends_autoaccept_blocked", "friends_removeblocked"]
 
 VKReact.settings = {
@@ -417,12 +420,15 @@ VKReact.settings = {
    },
    exporter: function() {
       let obj = {}
-      VKReact.clientside_settings.forEach(it => obj[it] = GM_getValue(it))
+      Object.keys(VKReact.clientside_settings).forEach(it => obj[it] = GM_getValue(it))
       return obj
    },
 }
 
-VKReact.clientside_settings.forEach(it => Object.defineProperty(VKReact.settings, it, {get: function() {return GM_getValue(it)}, set: function(value) {VKReact.onVariableSwitch(it); GM_setValue(it, value)}}))
+for (const [key, _value] of Object.entries(VKReact.clientside_settings)) {
+   Object.defineProperty(VKReact.settings, key, {get: function() {return GM_getValue(key, _value)}, set: function(value) {VKReact.onVariableSwitch(key); GM_setValue(key, value)}})
+}
+
 VKReact.serverside_settings.forEach(it => Object.defineProperty(VKReact.settings, it, {
    get: function() {
       return this[`_${it}`]

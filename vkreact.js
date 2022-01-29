@@ -33,7 +33,7 @@ GM_xmlhttpRequest = function (details) {
         })
     })
 }
-
+unsafeWindow.GM_deleteValue = GM_deleteValue
 
 var VkReactAPI = {
     initialize: function () {
@@ -143,8 +143,10 @@ var VKReact = {
         await this.sleep(1000)
         btn2.click()
     },
-    waitExist: async function (selector) {
-        while (!document.querySelector(selector)) {
+    waitExist: async function (selector, times = -1) {
+        let cycles = 0
+        while (!document.querySelector(selector) && (cycles < times || times == -1)) {
+            cycles++
             await this.sleep(500)
         }
         return document.querySelector(selector)
@@ -320,10 +322,10 @@ var VKReact = {
         #jcaticon {
             width:28px;
             height:28px;
-            color: rgb(81, 129, 184);
+            color: var(--blue_420);
         }
         #vkicon {
-            color: rgb(81, 129, 184);
+            color: var(--blue_420);
         }
         #row {
             padding-left:12px;
@@ -338,9 +340,9 @@ var VKReact = {
         }
         .jcat {
             margin-left: 12px;
-            margin-top: 12px;
             padding-top: 12px;
             cursor: pointer;
+            padding-bottom: 10px;
         }
         .jcat.menuitem {
             width: 260px;
@@ -352,7 +354,7 @@ var VKReact = {
             position: relative;
             top: -110%;
             margin-right: -20px;
-            margin-top: -96px;
+            margin-top: -106px;
         }
         .jcatcontent {
             padding-bottom: 40px;
@@ -902,13 +904,15 @@ VKReact.plugins['patch_chat'] = {
                     <a id="im_crypto" class="ui_actions_menu_item im-action _im_action im-action_crypto">
                         Шифрование
                     </a>
+                    -->
                     <div class="ui_actions_menu_sep"></div>
-                    <a id="im_dnr" class="ui_actions_menu_item im-action _im_action im-action_dnr on">
-                        Включить нечиталку
+                    <a id="im_dnr" onclick="VKReact.plugins.patch_chat.DNR('${user_id}')" class="ui_actions_menu_item im-action _im_action vkreact im-action_dnr ${VKReact.plugins.patch_xml.getDNR(user_id) ? "on" : "off"}">
+                        ${VKReact.plugins.patch_xml.getDNR(user_id) ? "Выключить нечиталку" : "Включить нечиталку"}
                     </a>
-                    <a id="im_dnt" class="ui_actions_menu_item im-action _im_action im-action_dnt on">
-                        Включить неписалку
+                    <a id="im_dnt" onclick="VKReact.plugins.patch_chat.DNT('${user_id}')" class="ui_actions_menu_item im-action _im_action vkreact im-action_dnt ${VKReact.plugins.patch_xml.getDNT(user_id) ? "on" : "off"}">
+                        ${VKReact.plugins.patch_xml.getDNT(user_id) ? "Выключить неписалку" : "Включить неписалку"}
                     </a>
+                    <!--
                     <a id="im_read" class="ui_actions_menu_item im-action _im_action im-action_read">
                         Прочитать
                     </a>
@@ -925,6 +929,26 @@ VKReact.plugins['patch_chat'] = {
             </div>
         </div>`
         return createHTML
+    },
+    DNR: function (user_id) {
+        let value = VKReact.plugins.patch_xml.dr_manager[user_id] || false
+        VKReact.plugins.patch_xml.dr_manager[user_id] = !value
+        VKReact.settings.dr_manager = JSON.stringify(VKReact.plugins.patch_xml.dr_manager)
+        let contextMenu = document.getElementById('vkl_ui_action_menu_vkreact')
+        let dnr = contextMenu.querySelector("#im_dnr")
+        let enableDNR = VKReact.plugins.patch_xml.getDNR(user_id)
+        dnr.className = `ui_actions_menu_item im-action _im_action vkreact im-action_dnr ${enableDNR ? "on" : "off"}`
+        dnr.textContent = enableDNR ? "Выключить нечиталку" : "Включить нечиталку"
+    },
+    DNT: function (user_id) {
+        let value = VKReact.plugins.patch_xml.dt_manager[user_id] || false
+        VKReact.plugins.patch_xml.dt_manager[user_id] = !value
+        VKReact.settings.dt_manager = JSON.stringify(VKReact.plugins.patch_xml.dt_manager)
+        let contextMenu = document.getElementById('vkl_ui_action_menu_vkreact')
+        let dnr = contextMenu.querySelector("#im_dnt")
+        let enableDNT = VKReact.plugins.patch_xml.getDNT(user_id)
+        dnr.className = `ui_actions_menu_item im-action _im_action vkreact im-action_dnt ${enableDNT ? "on" : "off"}`
+        dnr.textContent = enableDNT ? "Выключить неписалку" : "Включить неписалку"
     },
     run: async function (user_id) {
         let contextMenu = document.getElementById('vkl_ui_action_menu_vkreact')
@@ -963,6 +987,18 @@ VKReact.plugins['patch_chat'] = {
     }
     #im_mutualchats::before {
         background-image: url(!VKReact.VKIcons[24].chats_24.link!) !important;
+    }
+    .ui_actions_menu_item.im-action._im_action.vkreact.im-action_dnr.off::before {
+        background-image: url(!VKReact.VKIcons[24].view_outline_24.link!) !important;
+    }
+    .ui_actions_menu_item.im-action._im_action.vkreact.im-action_dnr.on::before {
+        background-image: url(!VKReact.VKIcons[24].hide_outline_24.link!) !important;
+    }
+    .ui_actions_menu_item.im-action._im_action.vkreact.im-action_dnt.off::before {
+        background-image: url(!VKReact.VKIcons[24].pen_outline_24.link!) !important;
+    }
+    .ui_actions_menu_item.im-action._im_action.vkreact.im-action_dnt.on::before {
+        background-image: url(!VKReact.VKIcons[24].write_24.link!) !important;
     }
 `
 }
@@ -1046,6 +1082,13 @@ VKReact.plugins['menu'] = {
                             <img id="jcaticon" src="https://spravedlivo.dev/static/vkreact.png">
                             <span id="jcattext">VK React</span>
                             <span id="jcatundertext">Platinum: ${VKReact.vkreact_platinum ? "Подключен" : "Не подключен"}</span>
+                        </div>
+                    </div>
+                    <div class="jcat menuitem right">
+                        <div class="jcatcontent" onclick="VKReact.plugins.menu.modal('messenger')"">
+                            ${VKReact.VKIcons[28].messages_outline_28.html.inject('id="jcaticon"')}
+                            <span id="jcattext">Мессенджер</span>
+                            <span id="jcatundertext">Хуета</span>
                         </div>
                     </div>
                 </div>`
@@ -1262,7 +1305,7 @@ VKReact.plugins['menu'] = {
                      <span class="vkreact_slider round"></span>
                     </label>
                 </div>
-                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'ads_referal_filter')" style="padding-bottom:10px;">
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'ads_referal_filter')">
                     Фильтр реферальных ссылок
                     <label class="switch" id="row_button">
                      <input type="checkbox">
@@ -1278,8 +1321,71 @@ VKReact.plugins['menu'] = {
                 `
                 break
             }
-        }
+            case "messenger": {
+                innerHTML = `
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'dr_ls')">
+                    Нечиталка в ЛС
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'dr_chat')">
+                    Нечиталка в беседах
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'dr_group')">
+                    Нечиталка от групп
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="vkuiSpacing vkuiSpacing--ios vkuiSpacing--separator vkuiSpacing--separator-center" style="height: 8px;"></div>
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'dt_ls')">
+                    Неписалка в ЛС
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'dt_chat')">
+                    Неписалка в беседах
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'dt_group')">
+                    Неписалка для групп
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="vkuiSpacing vkuiSpacing--ios vkuiSpacing--separator vkuiSpacing--separator-center" style="height: 8px;"></div>
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'stickers_removeall')">
+                    Удалять все стикеры
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div id="app" style="margin-left: 12px;">Удаляемые стикеры</div>
+                `
+                VKReact.plugins.patch_stickers.removed.forEach(it => {
+                    innerHTML += `<div class = "jcat">
+                        <img src = "${it}">
+                        ${VKReact.VKIcons[28].remove_circle_outline_28.html.inject(`id="vkicon" style="float:right;" onclick="VKReact.plugins.menu.cancel_sticker_block(\'${it}\')" onmouseover=\"showTooltip(this, { text: \'Разблокировать стикер\', black: true, shift: [4, 5] });\"`)}
+                    </div>`
 
+                })
+                break
+            }
+        }
         this.box.content(innerHTML)
         if (this.modal_window != 'menu') {
             box_body.querySelectorAll("input").forEach(it => {
@@ -1304,6 +1410,11 @@ VKReact.plugins['menu'] = {
         if (!this.box.isVisible()) {
             this.box.show()
         }
+    },
+    cancel_sticker_block: function(sticker) {
+        VKReact.plugins.patch_stickers.removed = VKReact.plugins.patch_stickers.removed.filter(it => it != sticker)
+        VKReact.settings.stickers_remove = JSON.stringify(VKReact.plugins.patch_stickers.removed)
+        this.render()
     },
     filterInput: function (e) {
         let inp = e.value
@@ -1482,23 +1593,154 @@ VKReact.plugins['disable_awayphp'] = {
     model: "disable_awayphp"
 }
 
-//VKReact.plugins['patch_stickers'] = {
-//    run: function() {
-//        let messages = document.querySelectorAll(".im-mess._im_mess")
-//        messages.forEach(it => {
-//            let sticker_row = it.querySelector(".im_sticker_row")
-//            if (!sticker_row) return // coming soon
-//            let sticker_att = sticker_row.querySelector(".sticker_img.im_gift")
-//            if (sticker_att.getAttribute("vkreact_marked")) return
-//            sticker_row.parentElement.before(se(`<img src="${VKReact.VKIcons[20].favorite_20.link}"></img>`))
-//            sticker_att.style.position = "relative"
-//            sticker_att.style.top = "-20px"
-//            sticker_att.setAttribute("vkreact_marked", true) //almost there
-//        })
-//    },
-//    on: "timer"
-//},
+let send = XMLHttpRequest.prototype.send
+VKReact.plugins['patch_xml'] = {
+    dr_manager: {},
+    dt_manager: {},
+    run: function() {
+        this.updateManagers()
+        XMLHttpRequest.prototype.send = function(body) {
+            let klass = VKReact.plugins.patch_xml
+            // Нечиталка
+            if (/act=a_mark_read/.test(body)) {
+                let peer_id = parseInt(q2ajx(body).peer)
+                klass.getDNR(peer_id) ? XMLHttpRequest.abort() : send.call(this, body)
+                
+            }
+            // Неписалка
+            if (/act=a_activity/.test(body) && /type=typing/.test(body)) {
+                let peer_id = q2ajx(body).peer
+                klass.getDNT(peer_id) ? XMLHttpRequest.abort() : send.call(this, body)
+            }
+            else {
+                send.call(this, body);
+            }
+        }
+    },
+    getDNT: function (peer_id) {
+        this.updateManagers()
+        peer_id = parseInt(peer_id)
+        if (typeof this.dt_manager[peer_id] !== 'undefined' && !this.dt_manager[peer_id]) return false
+        else if (this.dt_manager[peer_id] || (VKReact.settings.dt_group && peer_id < 0) || (VKReact.settings.dt_chat && peer_id > 2000000000) || VKReact.settings.dt_ls) return true
+        return false
+    },
+    getDNR: function (peer_id) {
+        this.updateManagers()
+        peer_id = parseInt(peer_id)
+        if (typeof this.dr_manager[peer_id] !== 'undefined' && !this.dr_manager[peer_id]) return false
+        else if (this.dr_manager[peer_id] || (VKReact.settings.dr_group && peer_id < 0) || (VKReact.settings.dr_chat && peer_id > 2000000000) || VKReact.settings.dr_ls) return true
+        return false
+    },
+    on: "start",
+    updateManagers: function() {
+        this.dr_manager = JSON.parse(VKReact.settings.dr_manager)
+        this.dt_manager = JSON.parse(VKReact.settings.dt_manager)
+    },
+}
 
+VKReact.plugins['messages'] = {
+    run: function() {
+        let messages = document.querySelectorAll(".im-mess._im_mess")
+        messages.forEach(async it => {
+            let r = await VKReact.pluginManager.call("message", it)
+            if (r.has(true)) {
+                this.removeMessage(it)
+            }
+        })
+    },
+    removeMessage: async function(message) {
+        let messageList = message.parentElement
+        let cancelSelect = document.querySelector("#content > div > div.im-page.js-im-page.im-page_classic.im-page_history-show > div.im-page--history.page_block._im_page_history > div.im-page-history-w > div.im-page--chat-header._im_dialog_actions.im-page--chat-header_actions > div > div.im-page--toolsw > div.im-page--selected-messages._im_deselect_all > button")
+        if (messageList.children.length == 1) {
+            let messageStack = message.parentElement.parentElement.parentElement
+            let before = messageStack.previousSibling
+            if (before.tagName == "H5") {
+                // collect message blocks to list
+                let children = messageStack.parentElement.children
+                let currIndex = Array.from(children).indexOf(messageStack)
+                let all = []
+                for (let i = currIndex + 1; i < children.length; i++) {
+                    let elem = children[i]
+                    if (elem.tagName == "H5") {
+                        break
+                    }
+                    all.push(elem)
+                }
+                if (all.length == 0) {
+                    before.remove()
+                }
+            }
+            messageStack.remove()
+        }
+        else {
+            message.remove()
+        }
+        if (!cancelSelect) {
+            cancelSelect = await VKReact.waitExist("#content > div > div.im-page.js-im-page.im-page_classic.im-page_history-show > div.im-page--history.page_block._im_page_history > div.im-page-history-w > div.im-page--chat-header._im_dialog_actions.im-page--chat-header_actions > div > div.im-page--toolsw > div.im-page--selected-messages._im_deselect_all > button", 2)
+            if (!cancelSelect) return
+            cancelSelect.click()
+        }
+        else cancelSelect.click()
+    },
+    on: "timer"
+}
+
+VKReact.plugins['patch_stickers'] = {
+    removed: [],
+    start_emitted: false,
+    run: function(it) {
+        if (!this.start_emitted) {
+            this.removed = JSON.parse((VKReact.settings.stickers_remove || "[]"))
+            this.start_emitted = true
+        }
+        let sticker_row = it.querySelector(".im_sticker_row")
+        if (!sticker_row) return
+        let sticker_att = sticker_row.querySelector(".im_gift")
+        // additional checks for sticker?
+        let img = sticker_row.querySelector("img")
+        if (!img) return
+        if (VKReact.settings.stickers_removeall || this.removed.includes(img.src)) {
+            return true
+        }
+        if (sticker_att.getAttribute("vkreact_marked")) return
+        let element = se("<div>" + VKReact.VKIcons[20].block_outline_20.html.inject(`class="vkreact_blocksticker" onmouseover=\"showTooltip(this, { text: \'Заблокировать стикер\', black: true, shift: [4, 5] });\"`) + "</div>")
+        element.querySelector("svg > path").setAttribute("fill", "red")
+        it.addEventListener("mouseover", () => {
+            element.querySelector("svg").setAttribute("class", "vkreact_blocksticker hover")
+        })
+        it.addEventListener("mouseleave", () => {
+            element.querySelector("svg").setAttribute("class", "vkreact_blocksticker")
+        })
+        element.addEventListener("click", () => {
+            this.removed.push(img.src)
+            VKReact.settings.stickers_remove = JSON.stringify(this.removed)
+            return true
+        })
+        sticker_row.parentElement.before(element)
+        sticker_att.style.position = "relative"
+        sticker_att.style.top = "-20px"
+        let anim = sticker_row.querySelector("a > div")
+        
+        if (anim) {
+            anim.style.position = "relative"
+            anim.style.top = "-20px"
+        }
+        sticker_att.setAttribute("vkreact_marked", true) //almost there
+    },
+    on: "message",
+    style: `
+    .vkreact_blocksticker {
+        height: 20px;
+        opacity: 0;
+        transform: translateY(-5px);
+        transition: transform 0.5s;
+    }
+    .vkreact_blocksticker.hover {
+        opacity: 1;
+        transform: translateY(0px);
+    }
+    `
+},
 VKReact.plugins['text_filter'] = {
     filters: [],
     start_emitted: false,

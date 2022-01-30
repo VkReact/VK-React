@@ -6,9 +6,6 @@
 2. Go to [our site](https://spravedlivo.dev/static/vkreact_min.user.js) and click "Install"
 3. Done! You won't even have to update script in future
 
-## Use
-VK token is required in order to make extention work. It will prompt you modal window asking for token
-
 ## Summary 
 This repository contains source code for extention client. We do not reveal source code for server.
 
@@ -43,3 +40,7 @@ This repository contains source code for extention client. We do not reveal sour
 | Filter shortlinks | Post ads filter | Remove posts with goo.gl, bit.ly etc. |
 | Filter referal | Post ads filter | Remove posts with ali.pub etc. |
 | Custom filter | Post ads filter | Custom filter for post ads, separated by comma |
+| Block all stickers | Messenger | Removes messages that contain stickers |
+| Blocked stickers | Messenger | Blocked certain stickers |
+| Do Not Read | Messenger | Customization for do not read |
+| Do Not Type | Messenger | Customization for do not type |

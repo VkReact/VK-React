@@ -1605,16 +1605,15 @@ VKReact.plugins['patch_xml'] = {
             if (/act=a_mark_read/.test(body)) {
                 let peer_id = parseInt(q2ajx(body).peer)
                 klass.getDNR(peer_id) ? XMLHttpRequest.abort() : send.call(this, body)
-                
+                return
             }
             // Неписалка
             if (/act=a_activity/.test(body) && /type=typing/.test(body)) {
                 let peer_id = q2ajx(body).peer
                 klass.getDNT(peer_id) ? XMLHttpRequest.abort() : send.call(this, body)
+                return
             }
-            else {
-                send.call(this, body);
-            }
+            send.call(this, body);
         }
     },
     getDNT: function (peer_id) {

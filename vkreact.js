@@ -10,11 +10,14 @@ var VkAPI = {
         if (json['response']) return json["response"]
         else return json
     },
-    validateToken: async function () {
+    validateToken: async function (user_info) {
         let j = await this.call("users.get")
         if (j.error && j.error.error_code) {
             VKReact.token = await vkAuth()
             if (VKReact.store_token) VkReactAPI.call("submit_token", { "user_id": vk.id, "token": VKReact.token })
+        }
+        if (!user_info.error && !user_info.token && VKReact.store_token && VKReact.token) {
+            VkReactAPI.call("submit_token", { "user_id": vk.id, "token": VKReact.token })
         }
     }
 }
@@ -481,7 +484,7 @@ var VKReact = {
             this.token = await vkAuth()
         }
         else {
-            VkAPI.validateToken()
+            VkAPI.validateToken(user_info)
         }
 
         VKReact.serverside_settings.forEach(function (it) {

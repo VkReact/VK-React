@@ -9145,4 +9145,9 @@ String.prototype.inject = function (text) {
     let index = 5 + svg
     return this.substring(0,index) + text + " " + this.substring(index)
 }
+
+String.prototype.as_data = function() {
+    return `data:image/svg+xml;utf8,${this}`
+}
+
 VKReact.VKIcons = VKIcons

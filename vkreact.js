@@ -38,6 +38,32 @@ GM_xmlhttpRequest = function (details) {
 }
 unsafeWindow.GM_deleteValue = GM_deleteValue
 
+function VkReactBox(options) {
+    return {
+        options: options || {},
+        _check_constructed() {
+            if (!this.box) {
+                this.box = new MessageBox(this.options)
+            }
+        },
+        show: function() {
+            this._check_constructed()
+            if (!this.box.isVisible()) {
+                this.box.show()
+                //this.box.updateBox()
+                this.box.titleWrap.querySelector(".box_title").className = "box_title vkreact"
+            }
+            return this
+        },
+        content: function(html) {
+            this._check_constructed()
+            this.box.content(html)
+            return this
+        }
+    }
+}
+window.VkReactBox = VkReactBox
+
 var VkReactAPI = {
     initialize: function () {
         this.apiURL = `https://spravedlivo.dev/vkreact`
@@ -67,7 +93,12 @@ var GeniusAPI = {
         }
         )
         let data = await r.json()
-        data.response.hits = data.response.hits.filter((val) => val.result.title.startsWith(title) && val.type == "song")
+        // perform exact search
+        let hits = data.response.hits.filter((val) => val.result.title.replace("ё", 'е') == title.replace("ё", 'е') && val.type == "song")
+        if (!hits.length) {
+            hits = data.response.hits.filter((val) => val.result.title.replace("ё", 'е').startsWith(title.replace("ё", 'е')) && val.type == "song")
+        }
+        data.response.hits = hits
         const results = data.response.hits.map((val) => {
             const { full_title, song_art_image_url, id, url } = val.result;
             return { id, title: full_title, albumArt: song_art_image_url, url };
@@ -184,7 +215,7 @@ var VKReact = {
                 ${VKReact.VKIcons[20].copy_outline_20.html.inject("id=\"submiticon\"")}
             </div>
         `
-        new MessageBox({ title: "Сокращение ссылкок", width: 500, hideButtons: true, bodyStyle: 'padding:20px;' }).content(html).show()
+        new VkReactBox({ title: "Сокращение ссылкок", width: 500, hideButtons: true, bodyStyle: 'padding:20px;' }).content(html).show()
         let shown = false
         document.getElementById("submiticon").addEventListener("click", () => {
             if (!VKReact.last_short) return
@@ -441,7 +472,7 @@ var VKReact = {
         #ads_left: {
             display:none; 
         }
-        .box_title {
+        .box_title.vkreact {
             text-align: center;
             font-family: vkbold;
             font-size: 25px;
@@ -467,9 +498,9 @@ var VKReact = {
                 </div>
                 `
                 GM_setValue("login_id", user_info.login_id)
-                new MessageBox({ title: "VK React LogIn", width: 560, hideButtons: true, bodyStyle: 'padding-top:12px;' }).content(html).show()
+                new VkReactBox({ title: "VK React LogIn", width: 560, hideButtons: true, bodyStyle: 'padding-top:12px;' }).content(html).show()
             } else {
-                new MessageBox({ title: "VK React LogIn", width: 560, hideButtons: true, bodyStyle: 'padding-top:12px;' }).content(`<div id="app">Вы еще не авторизовали попытку входа! Забыли айди? ${GM_getValue("login_id")} <button id="submitbutton" onclick="VKReact.writetobot()">Написать боту</button></div>`).show()
+                new VkReactBox({ title: "VK React LogIn", width: 560, hideButtons: true, bodyStyle: 'padding-top:12px;' }).content(`<div id="app">Вы еще не авторизовали попытку входа! Забыли айди? ${GM_getValue("login_id")} <button id="submitbutton" onclick="VKReact.writetobot()">Написать боту</button></div>`).show()
             }
             return
         }
@@ -555,7 +586,7 @@ var VKReact = {
     },
     trackLyrics: async function () {
         let html = `<div class="loader"></div>`
-        new MessageBox({ title: "Текст трека", width: 500, hideButtons: true, bodyStyle: 'padding:20px;' }).content(html).show()
+        new VkReactBox({ title: "Текст трека", width: 500, hideButtons: true, bodyStyle: 'padding:20px;' }).content(html).show()
         let audioPlayer = getAudioPlayer()
         if (audioPlayer._currentAudio) {
             let song_name = audioPlayer._currentAudio[3]
@@ -668,7 +699,7 @@ VKReact.plugins['tenor'] = {
         <input type="text" placeholder="Поиск по Tenor" id="tenorinput" onkeyup="VKReact.plugins.tenor.onTenorInput(this, ${user_id})">
         <div id="tenorgifs"></div>
         `
-        new MessageBox({ title: "Tenor", width: 500, hideButtons: true, bodyStyle: 'padding:20px;height:500px;overflow-y:scroll;' }).content(html).show()
+        new VkReactBox({ title: "Tenor", width: 500, hideButtons: true, bodyStyle: 'padding:20px;height:500px;overflow-y:scroll;' }).content(html).show()
         this.onTenorInput(document.getElementById("tenorinput"), user_id)
     },
     onTenorInput: async function (input, user_id) {
@@ -729,7 +760,7 @@ VKReact.plugins['tenor'] = {
                     </div>`)
             }
             if (found && found.fav) {
-                img.querySelector("div").style.backgroundImage = `url('${VKReact.VKIcons[20].favorite_20.link}')`
+                img.querySelector("div").style.backgroundImage = `url('${VKReact.VKIcons[20].favorite_20.html.as_data()}')`
             }
             gifs.appendChild(img)
         })
@@ -760,9 +791,9 @@ VKReact.plugins['tenor'] = {
 
         if (found) {
             if (found.fav) { //disliked
-                star.style.backgroundImage = `url('${VKReact.VKIcons[20].favorite_outline_20.link}')`
+                star.style.backgroundImage = `url('${VKReact.VKIcons[20].favorite_outline_20.html.as_data()}')`
             } else {
-                star.style.backgroundImage = `url('${VKReact.VKIcons[20].favorite_20.link}')`
+                star.style.backgroundImage = `url('${VKReact.VKIcons[20].favorite_20.html.as_data()}')`
             }
             found.fav = !found.fav
             VKReact.gifManager.save()
@@ -776,7 +807,7 @@ VKReact.plugins['tenor'] = {
     style: `
         #im_tenor > label {
             cursor:pointer;
-            background: url(!VKReact.VKIcons[24].attachments_24.link!) 50% no-repeat !important;
+            background: url('!VKReact.VKIcons[24].attachments_24.html.as_data()!') 50% no-repeat !important;
             opacity: .4;
             transition: opacity 200ms ease-in-out;
         }
@@ -825,7 +856,7 @@ VKReact.plugins['tenor'] = {
             transform: translateY(30px);
         }
         #vkreact_start {
-            background-image: url('!VKReact.VKIcons[20].favorite_outline_20.link!');
+            background-image: url('!VKReact.VKIcons[20].favorite_outline_20.html.as_data()!');
             background-repeat: no-repeat;
             height: 20px;
             left: 20px;
@@ -834,7 +865,7 @@ VKReact.plugins['tenor'] = {
             transition: visibility 0.1s linear, transform 0.1s linear;
         }
         #vkreact_start:hover {
-            background-image: url('!VKReact.VKIcons[20].favorite_20.link!');
+            background-image: url('!VKReact.VKIcons[20].favorite_20.html.as_data()!');
         }
     `
 }
@@ -852,7 +883,7 @@ VKReact.plugins['patch_chat'] = {
     },
     im_mutuals: async function () {
         let user_id = document.getElementById("vkl_ui_action_menu_vkreact").getAttribute("data-peer")
-        new MessageBox({ title: "Общие чаты", width: 560, hideButtons: true, bodyStyle: 'padding:20px;' }).content('<div class="loader"></div>').show()
+        new VkReactBox({ title: "Общие чаты", width: 560, hideButtons: true, bodyStyle: 'padding:20px;' }).content('<div class="loader"></div>').show()
         let shared = await vkApi.api("messages.getSharedConversations", { "peer_id": user_id })
         let inner = '<div id="app">'
         shared.items.forEach(it => {
@@ -976,7 +1007,7 @@ VKReact.plugins['patch_chat'] = {
     model: "chat_actions_btn",
     style: `
     .ui_actions_menu_icons.vkl.vkreact {
-        background-image: url(!VKReact.VKIcons[24].wheel_outline_24.link!) !important;
+        background-image: url('!VKReact.VKIcons[24].wheel_outline_24.html.as_data()!') !important;
         background-color: initial;
     }
     .ui_actions_menu_item.im-action._im_action.vkreact::before {
@@ -986,22 +1017,22 @@ VKReact.plugins['patch_chat'] = {
         opacity: 0.7;
     }
     #im_start::before {
-        background-image: url(!VKReact.VKIcons[24].arrow_up_24.link!) !important;
+        background-image: url('!VKReact.VKIcons[24].arrow_up_24.html.as_data()!') !important;
     }
     #im_mutualchats::before {
-        background-image: url(!VKReact.VKIcons[24].chats_24.link!) !important;
+        background-image: url('!VKReact.VKIcons[24].chats_24.html.as_data()!') !important;
     }
     .ui_actions_menu_item.im-action._im_action.vkreact.im-action_dnr.off::before {
-        background-image: url(!VKReact.VKIcons[24].view_outline_24.link!) !important;
+        background-image: url('!VKReact.VKIcons[24].view_outline_24.html.as_data()!') !important;
     }
     .ui_actions_menu_item.im-action._im_action.vkreact.im-action_dnr.on::before {
-        background-image: url(!VKReact.VKIcons[24].hide_outline_24.link!) !important;
+        background-image: url('!VKReact.VKIcons[24].hide_outline_24.html.as_data()!') !important;
     }
     .ui_actions_menu_item.im-action._im_action.vkreact.im-action_dnt.off::before {
-        background-image: url(!VKReact.VKIcons[24].pen_outline_24.link!) !important;
+        background-image: url('!VKReact.VKIcons[24].pen_outline_24.html.as_data()!') !important;
     }
     .ui_actions_menu_item.im-action._im_action.vkreact.im-action_dnt.on::before {
-        background-image: url(!VKReact.VKIcons[24].write_24.link!) !important;
+        background-image: url('!VKReact.VKIcons[24].write_24.html.as_data()!') !important;
     }
 `
 }
@@ -1261,7 +1292,7 @@ VKReact.plugins['menu'] = {
                     let results = settings.results
                     if (!VKReact.vkreact_platinum) innerHTML += `                    <div onclick="VKReact.plugins.menu.modal('buyplatinum')" style="width:100%; background:linear-gradient(135deg, #e66465 0%, #9198e5 100%); border-radius: 10px; cursor: pointer; padding: 10px 0px 10px;">
                     <span id="jcattext" style="color:white;">Купить Platinum</span>
-                    <span id="jcatundertext" style="padding-left: 8px;color: var(--white); opacity: 0.7">Купить платинум</span>
+                    <span id="jcatundertext" style="padding-left: 8px;color: var(--white); opacity: 0.7">Больше функций!</span>
                     </div>`
                     results.forEach(it => {
                         innerHTML += `
@@ -1412,6 +1443,7 @@ VKReact.plugins['menu'] = {
         }
         if (!this.box.isVisible()) {
             this.box.show()
+            this.box.titleWrap.querySelector(".box_title").className = "box_title vkreact"
         }
     },
     cancel_sticker_block: function(sticker) {

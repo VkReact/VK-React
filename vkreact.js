@@ -4,7 +4,8 @@ var VkAPI = {
         arguments = arguments || {}
         arguments['access_token'] = VKReact.token
         arguments['v'] = '5.131'
-        let result = await fetch(`${this.apiURL}/${method}?${new URLSearchParams(arguments).toString()}`)
+        let url = `${this.apiURL}/${method}?${new URLSearchParams(arguments).toString()}`
+        let result = await fetch(url)
         let json = await result.json()
         if (log) VKReact.log(`Response from ${method}: ${JSON.stringify(json)}`)
         if (json['response']) return json["response"]
@@ -46,7 +47,7 @@ function VkReactBox(options) {
                 this.box = new MessageBox(this.options)
             }
         },
-        show: function() {
+        show: function () {
             this._check_constructed()
             if (!this.box.isVisible()) {
                 this.box.show()
@@ -55,7 +56,7 @@ function VkReactBox(options) {
             }
             return this
         },
-        content: function(html) {
+        content: function (html) {
             this._check_constructed()
             this.box.content(html)
             return this
@@ -94,9 +95,9 @@ var GeniusAPI = {
         )
         let data = await r.json()
         // perform exact search
-        let hits = data.response.hits.filter((val) => val.result.title.replace("ё", 'е') == title.replace("ё", 'е') && val.type == "song")
+        let hits = data.response.hits.filter((val) => val.result.title.replace("ё", 'е').toLowerCase() == title.replace("ё", 'е').toLowerCase() && val.type == "song")
         if (!hits.length) {
-            hits = data.response.hits.filter((val) => val.result.title.replace("ё", 'е').startsWith(title.replace("ё", 'е')) && val.type == "song")
+            hits = data.response.hits.filter((val) => val.result.title.replace("ё", 'е').toLowerCase().startsWith(title.replace("ё", 'е').toLowerCase()) && val.type == "song")
         }
         data.response.hits = hits
         const results = data.response.hits.map((val) => {
@@ -584,18 +585,23 @@ var VKReact = {
     tooltip: function (e, o) {
         showTooltip(e, { text: o, className: "tt_black" })
     },
-    trackLyrics: async function () {
+    trackLyrics: async function (artist, song_name) {
         let html = `<div class="loader"></div>`
         new VkReactBox({ title: "Текст трека", width: 500, hideButtons: true, bodyStyle: 'padding:20px;' }).content(html).show()
-        let audioPlayer = getAudioPlayer()
-        if (audioPlayer._currentAudio) {
-            let song_name = audioPlayer._currentAudio[3]
-            let artist = audioPlayer._currentAudio[4]
-            GeniusAPI.search_lyrics(artist, song_name)
-        } else {
+
+        if (!artist) {
+            let audioPlayer = getAudioPlayer()
+            if (audioPlayer._currentAudio) {
+                song_name = audioPlayer._currentAudio[3]
+                artist = audioPlayer._currentAudio[4]
+            }
+        }
+        if (!artist) {
             let body = document.querySelector(".box_body")
             body.innerHTML = `<div id="app">Не удается получить текст трека. Попробуйте нажать на кнопку воспроизведения трека</div>`
+            return
         }
+        GeniusAPI.search_lyrics(artist, song_name)
     }
 }
 
@@ -946,10 +952,10 @@ VKReact.plugins['patch_chat'] = {
                     <a id="im_dnt" onclick="VKReact.plugins.patch_chat.DNT('${user_id}')" class="ui_actions_menu_item im-action _im_action vkreact im-action_dnt ${VKReact.plugins.patch_xml.getDNT(user_id) ? "on" : "off"}">
                         ${VKReact.plugins.patch_xml.getDNT(user_id) ? "Выключить неписалку" : "Включить неписалку"}
                     </a>
-                    <!--
-                    <a id="im_read" class="ui_actions_menu_item im-action _im_action im-action_read">
+                    <a id="im_read" onclick="VKReact.plugins.patch_chat.mark_as_read('${user_id}')" class="ui_actions_menu_item im-action _im_action vkreact im-action_read">
                         Прочитать
                     </a>
+                    <!--
                     <div class="ui_actions_menu_sep"></div>
                     <a id="im_spy" class="ui_actions_menu_item im-action _im_action im-action_spy">
                         Включить шпионаж
@@ -984,12 +990,19 @@ VKReact.plugins['patch_chat'] = {
         dnr.className = `ui_actions_menu_item im-action _im_action vkreact im-action_dnt ${enableDNT ? "on" : "off"}`
         dnr.textContent = enableDNT ? "Выключить неписалку" : "Включить неписалку"
     },
+    mark_as_read: async function(user_id) {
+        await VkAPI.call("messages.markAsRead", {"peer_id": user_id})
+        Notifier.showEvent({
+            title: "VK React",
+            text: `Диалог помечен как прочитанный`,
+        })
+    },
     run: async function (user_id) {
         let contextMenu = document.getElementById('vkl_ui_action_menu_vkreact')
         if (!contextMenu) {
             // selector to button
             let btn = document.querySelector(`#content > div > div.im-page.js-im-page.im-page_classic.im-page_history-show > div.im-page--history.page_block._im_page_history > div.im-page-history-w > div.im-page--chat-header._im_dialog_actions > div.im-page--chat-header-in > div.im-page--toolsw > div.im-page--aside > div:nth-child(6)`)
-            
+
             let created = se(this.getCreateHTML(user_id))
             let btn2 = document.querySelector('#content > div > div > div.im-page--history.page_block._im_page_history > div.im-page-history-w > div.im-page--chat-header._im_dialog_actions > div > div.im-page--toolsw > div.im-page--aside > div.im-page--header-more.im-page--header-menu-button._im_dialog_action_wrapper')
             if (!btn && btn2) {
@@ -1021,6 +1034,9 @@ VKReact.plugins['patch_chat'] = {
     }
     #im_mutualchats::before {
         background-image: url('!VKReact.VKIcons[24].chats_24.html.as_data()!') !important;
+    }
+    #im_read::before {
+        background-image: url('!VKReact.VKIcons[24].done_24.html.as_data()!') !important;
     }
     .ui_actions_menu_item.im-action._im_action.vkreact.im-action_dnr.off::before {
         background-image: url('!VKReact.VKIcons[24].view_outline_24.html.as_data()!') !important;
@@ -1055,7 +1071,7 @@ async function vkAuth() {
     var g = html.match(/https:\/\/[^"]+\.vk\.com\/[^"]+grant_access[^"]+/g);
     g = (g && g[1] && g[1].indexOf('cancel') == -1) ? g[1] : (g || [])[0];
     if (!g) {
-        this.log("Vk Auth Failed.")
+        VKReact.log("Vk Auth Failed.")
     }
     let response = await GM_xmlhttpRequest({ url: g })
     let href = response.finalUrl
@@ -1176,6 +1192,13 @@ VKReact.plugins['menu'] = {
                      <input type="checkbox">
                      <span class="vkreact_slider round"></span>
                     </label>
+                </div>
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'dr_stories')">
+                    Нечиталка историй
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
                 </div>`
                     break
                 }
@@ -1278,6 +1301,20 @@ VKReact.plugins['menu'] = {
                 <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'tenor', true)">
                     Кнопка "Tenor GIF"
                     <span id="app" class="vkreact_span_animated">Server</span>
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'audiorow_download_button')">
+                    Кнопка "Скачать трек"
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'audiorow_lyrics')">
+                    Кнопка "Текст трека" во всех строках с аудио
                     <label class="switch" id="row_button">
                      <input type="checkbox">
                      <span class="vkreact_slider round"></span>
@@ -1446,7 +1483,7 @@ VKReact.plugins['menu'] = {
             this.box.titleWrap.querySelector(".box_title").className = "box_title vkreact"
         }
     },
-    cancel_sticker_block: function(sticker) {
+    cancel_sticker_block: function (sticker) {
         VKReact.plugins.patch_stickers.removed = VKReact.plugins.patch_stickers.removed.filter(it => it != sticker)
         VKReact.settings.stickers_remove = JSON.stringify(VKReact.plugins.patch_stickers.removed)
         this.render()
@@ -1632,9 +1669,9 @@ let send = XMLHttpRequest.prototype.send
 VKReact.plugins['patch_xml'] = {
     dr_manager: {},
     dt_manager: {},
-    run: function() {
+    run: function () {
         this.updateManagers()
-        XMLHttpRequest.prototype.send = function(body) {
+        XMLHttpRequest.prototype.send = function (body) {
             let klass = VKReact.plugins.patch_xml
             // Нечиталка
             if (/act=a_mark_read/.test(body)) {
@@ -1646,6 +1683,10 @@ VKReact.plugins['patch_xml'] = {
             if (/act=a_activity/.test(body) && /type=typing/.test(body)) {
                 let peer_id = q2ajx(body).peer
                 klass.getDNT(peer_id) ? XMLHttpRequest.abort() : send.call(this, body)
+                return
+            }
+            if (/act=read_stories/.test(body) && VKReact.settings.dr_settings) {
+                XMLHttpRequest.abort()
                 return
             }
             send.call(this, body);
@@ -1666,14 +1707,14 @@ VKReact.plugins['patch_xml'] = {
         return false
     },
     on: "start",
-    updateManagers: function() {
+    updateManagers: function () {
         this.dr_manager = JSON.parse(VKReact.settings.dr_manager)
         this.dt_manager = JSON.parse(VKReact.settings.dt_manager)
     },
 }
 
 VKReact.plugins['messages'] = {
-    run: function() {
+    run: function () {
         let messages = document.querySelectorAll(".im-mess._im_mess")
         messages.forEach(async it => {
             let r = await VKReact.pluginManager.call("message", it)
@@ -1682,9 +1723,8 @@ VKReact.plugins['messages'] = {
             }
         })
     },
-    removeMessage: async function(message) {
+    removeMessage: async function (message) {
         let messageList = message.parentElement
-        let cancelSelect = document.querySelector("#content > div > div.im-page.js-im-page.im-page_classic.im-page_history-show > div.im-page--history.page_block._im_page_history > div.im-page-history-w > div.im-page--chat-header._im_dialog_actions.im-page--chat-header_actions > div > div.im-page--toolsw > div.im-page--selected-messages._im_deselect_all > button")
         if (messageList.children.length == 1) {
             let messageStack = message.parentElement.parentElement.parentElement
             let before = messageStack.previousSibling
@@ -1709,12 +1749,6 @@ VKReact.plugins['messages'] = {
         else {
             message.remove()
         }
-        if (!cancelSelect) {
-            cancelSelect = await VKReact.waitExist("#content > div > div.im-page.js-im-page.im-page_classic.im-page_history-show > div.im-page--history.page_block._im_page_history > div.im-page-history-w > div.im-page--chat-header._im_dialog_actions.im-page--chat-header_actions > div > div.im-page--toolsw > div.im-page--selected-messages._im_deselect_all > button", 2)
-            if (!cancelSelect) return
-            cancelSelect.click()
-        }
-        else cancelSelect.click()
     },
     on: "timer"
 }
@@ -1722,7 +1756,7 @@ VKReact.plugins['messages'] = {
 VKReact.plugins['patch_stickers'] = {
     removed: [],
     start_emitted: false,
-    run: function(it) {
+    run: function (it) {
         if (!this.start_emitted) {
             this.removed = JSON.parse((VKReact.settings.stickers_remove || "[]"))
             this.start_emitted = true
@@ -1745,7 +1779,9 @@ VKReact.plugins['patch_stickers'] = {
         it.addEventListener("mouseleave", () => {
             element.querySelector("svg").setAttribute("class", "vkreact_blocksticker")
         })
-        element.addEventListener("click", () => {
+        element.addEventListener("click", (e) => {
+            e.preventDefault()
+            e.stopPropagation()
             this.removed.push(img.src)
             VKReact.settings.stickers_remove = JSON.stringify(this.removed)
             return true
@@ -1754,7 +1790,7 @@ VKReact.plugins['patch_stickers'] = {
         sticker_att.style.position = "relative"
         sticker_att.style.top = "-20px"
         let anim = sticker_row.querySelector("a > div")
-        
+
         if (anim) {
             anim.style.position = "relative"
             anim.style.top = "-20px"
@@ -1774,13 +1810,14 @@ VKReact.plugins['patch_stickers'] = {
         transform: translateY(0px);
     }
     `
-},
+}
+
 VKReact.plugins['text_filter'] = {
     filters: [],
     start_emitted: false,
     short_links: ['bit.ly', 'goo.gl', 't1p.de', 'is.gd', 'bit.do'],
     referal_links: ['ali.pub'],
-    run: function(row) {
+    run: function (row) {
         if (!this.start_emitted) {
             this.start_emitted = true
             this.filters = (VKReact.settings.ads_filter_list || "").split(",")
@@ -1919,6 +1956,128 @@ VKReact.plugins['feed_disable_comments'] = {
     onDisable: function () {
         this.object_poll.forEach(it => it.style.display = "block")
     }
+}
+
+VKReact.plugins['mutations'] = {
+    run: function () {
+        // audioController.register()
+        this.observer = new MutationObserver(this.onMutations)
+        this.observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+        })
+    },
+    onMutations: function (mutations) {
+        for (let mutation of mutations) {
+            for (let node of (mutation.addedNodes || [])) {
+                VKReact.pluginManager.call("mutation", node)
+            }
+        }
+    },
+    on: "start"
+}
+
+
+
+VKReact.plugins['audio'] = {
+    run: function (node) {
+        if (node.nodeType !== 1) {
+            return
+        }
+        if (this.hasClass(node, ['audio_row__actions', '_audio_row__actions'])) {
+            this.activateAudioRow(node)
+        }
+    },
+    activateAudioRow: function (node) {
+        if (node.getAttribute('vkreact-marked') == 'true') {
+            return
+        }
+        if (VKReact.settings.audiorow_download_button) {
+            let element = se(`<button class="audio_row__action _audio_row__action audio_row__vkreact_download title="Скачать"></button>`)
+            element.setAttribute('data-media', 'audio')
+            element.addEventListener('click', this.onAudioDownload)
+            element.addEventListener('mouseenter', this.onAudioEnter)
+            node.appendChild(element)
+        }
+        if (VKReact.settings.audiorow_lyrics) {
+            let lyrics = se(`<button class="audio_row__action _audio_row__action audio_row__vkreact_lyrics" title="Текст трека"></button>`)
+            lyrics.addEventListener('mouseenter', this.onAudioEnter)
+            lyrics.addEventListener('click', this.onAudioLyrics)
+            node.appendChild(lyrics)
+        }
+        node.setAttribute("vkreact-marked", 'true')
+    },
+    onAudioDownload: function (e) {
+        e.preventDefault()
+        e.stopPropagation()
+        let full_id = e.target.getAttribute('data-full-id')
+        VKReact.plugins.audio.download_audio(full_id)
+    },
+    download_audio: async function (full_id) {
+        let data = await VkAPI.call("audio.getById", { "audios": full_id })
+        data = data[0]
+        let url = data['url']
+        VKReact.plugins.audio.download(url, `${data.artist} - ${data.title}.mp3`)
+    },
+    download: async function (source, name, onprogress) {
+        let link = document.createElement('a')
+        link.href = source
+        if (link.origin === location.origin) {
+            link.download = name || 'download'
+            link.innerHTML = name || 'download'
+            document.body.appendChild(link)
+            link.click()
+            return VKReact.sleep(300).then(function () {
+                onprogress && onprogress(1, 1)
+                document.body.removeChild(link)
+            })
+        }
+        let response = await GM_xmlhttpRequest({
+            method: 'GET',
+            url: link.href,
+            responseType: 'blob',
+            onprogress: onprogress
+        })
+        if (response.status != 200) {
+            return response
+        }
+        let URL = window.URL || window.webkitURL
+        let resource = URL.createObjectURL(response.response);
+        await this.download(resource, name)
+        URL.revokeObjectURL(resource)
+        return response
+    },
+    onAudioLyrics: async function (e) {
+        e.preventDefault()
+        e.stopPropagation()
+        let full_id = e.target.getAttribute('data-full-id')
+        let data = await VkAPI.call("audio.getById", { "audios": full_id })
+        data = data[0]
+        VKReact.trackLyrics(data.artist, data.title)
+    },
+    onAudioEnter: function (e) {
+        let audioRow = e.target.parentElement.parentElement.parentElement.parentElement.parentElement
+        let full_id = audioRow.getAttribute("data-full-id")
+        e.target.setAttribute("data-full-id", full_id)
+    },
+    hasClass: function (element, classes) {
+        let retval = 0
+        for (let c of classes) {
+            retval += Boolean(element && element.classList.contains(c))
+        }
+        return Boolean(retval)
+    },
+    style: `.audio_row__vkreact_download {
+          background: url('!VKReact.VKIcons[20].download_outline_20.html.as_data()!') no-repeat;
+          position: relative;
+          top: -3px;
+        }
+        .audio_row__vkreact_lyrics {
+          background: url('!VKReact.VKIcons[20].articles_outline_20.html.as_data()!') no-repeat;
+          position: relative;
+        }
+        `,
+    on: "mutation"
 }
 
 // патчи в ленту (работает как в сообществе, так и с /feed)

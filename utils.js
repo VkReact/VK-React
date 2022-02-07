@@ -24,7 +24,7 @@ let crc = function(str){
     };
 
     return crc32(str);
- }
+}
 
 
 unsafeWindow.Inj = { // KiberInfinity's JS_InjToFunc_Lib v2.1
@@ -409,7 +409,8 @@ VKReact.clientside_settings = {"disable_ads":false, "feed_disable_recc":false, '
                                'track_lyrics':false, 'tenor':false, 'platinum_userposts':false, 'chat_actions_btn':false, 'ads_shortlink_filter':false, 'ads_referal_filter':false,
                                'ads_filter_list':false, 'stickers_remove':"[]", 'stickers_removeall':false,
                                'dr_manager':"{}", 'dr_ls':false, 'dr_chat':false, 'dr_group':false,
-                               'dt_manager':"{}", 'dt_ls':false, 'dt_chat':false, 'dt_group':false}
+                               'dt_manager':"{}", 'dt_ls':false, 'dt_chat':false, 'dt_group':false, "audiorow_download_button": true, "audiorow_lyrics": true,
+                               'dr_stories': false}
 VKReact.serverside_settings = ["online", "friends_autoaccept", "friends_autoaccept_blocked", "friends_removeblocked"]
 
 VKReact.settings = {

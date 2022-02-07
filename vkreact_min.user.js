@@ -17,6 +17,11 @@
 // @connect      genius.com
 // @connect      spravedlivo.dev
 // @connect      vk.com
+// @connect      vk-cdn.com
+// @connect      vk-cdn.net
+// @connect      userapi.com
+// @connect      vkuseraudio.net
+// @connect      vkuservideo.net
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/vkreact.js
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/utils.js
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/icons.js

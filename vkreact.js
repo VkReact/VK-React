@@ -1685,7 +1685,7 @@ VKReact.plugins['patch_xml'] = {
                 klass.getDNT(peer_id) ? XMLHttpRequest.abort() : send.call(this, body)
                 return
             }
-            if (/act=read_stories/.test(body) && VKReact.settings.dr_settings) {
+            if (/act=read_stories/.test(body) && VKReact.settings.dr_stories) {
                 XMLHttpRequest.abort()
                 return
             }

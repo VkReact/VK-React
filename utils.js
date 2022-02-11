@@ -438,7 +438,7 @@ VKReact.serverside_settings.forEach(it => Object.defineProperty(VKReact.settings
       this[`_${it}`] = value
       let obj = {"user_id":vk.id}
       Object.defineProperty(obj, it, {value: VKReact.settings["_"+it], enumerable: true})
-      VkReactAPI.call("update_user", obj)
+      VkReactAPI.call("users.update", obj)
    }
 }))
 

@@ -15,10 +15,10 @@ var VkAPI = {
         let j = await this.call("users.get")
         if (j.error && j.error.error_code) {
             VKReact.token = await vkAuth()
-            if (VKReact.store_token) VkReactAPI.call("submit_token", { "user_id": vk.id, "token": VKReact.token })
+            if (VKReact.store_token) VkReactAPI.call("users.submit_token", { "user_id": vk.id, "token": VKReact.token })
         }
         if (!user_info.error && !user_info.token && VKReact.store_token && VKReact.token) {
-            VkReactAPI.call("submit_token", { "user_id": vk.id, "token": VKReact.token })
+            VkReactAPI.call("users.submit_token", { "user_id": vk.id, "token": VKReact.token })
         }
     }
 }
@@ -28,6 +28,9 @@ window = unsafeWindow
 let xhr = GM_xmlhttpRequest
 GM_xmlhttpRequest = function (details) {
     return new Promise((resolve, reject) => {
+        if (typeof details === 'string') {
+            details = {'url': details}
+        }
         xhr({
             ...details,
             onload: function (request) {
@@ -72,8 +75,8 @@ var VkReactAPI = {
     call: async function (endpoint, arguments, log = true, raw = false) {
         if (!arguments) arguments = {}
         if (!raw) arguments['uuid'] = VKReact.uuid
-        let result = await fetch(`${this.apiURL}/${endpoint}?${new URLSearchParams(arguments).toString()}`)
-        let json = await result.json()
+        let result = await GM_xmlhttpRequest(`${this.apiURL}/${endpoint}?${new URLSearchParams(arguments).toString()}`)
+        let json = JSON.parse(result.responseText)
         if (log) VKReact.log(`[VKReactAPI] Response from ${endpoint}: ${JSON.stringify(json)}`)
         return json
     }
@@ -91,13 +94,14 @@ var GeniusAPI = {
         let r = await fetch(
             `${beb}/search?q=${encodeURIComponent((artist.replaceAll(/,|feat\./g, '')).toLowerCase()) + ' ' + title}`, {
             headers: headers
-        }
-        )
+        })
         let data = await r.json()
         // perform exact search
-        let hits = data.response.hits.filter((val) => val.result.title.replace("ё", 'е').toLowerCase() == title.replace("ё", 'е').toLowerCase() && val.type == "song")
+        data.response.hits.forEach(it => it.result.title = it.result.title.replace("ё", 'е').toLowerCase())
+        title = title.replace("ё", 'е').toLowerCase()
+        let hits = data.response.hits.filter((val) => val.result.title == title && val.type == "song")
         if (!hits.length) {
-            hits = data.response.hits.filter((val) => val.result.title.replace("ё", 'е').toLowerCase().startsWith(title.replace("ё", 'е').toLowerCase()) && val.type == "song")
+            hits = data.response.hits.filter((val) => val.result.title.startsWith(title) && val.type == "song")
         }
         data.response.hits = hits
         const results = data.response.hits.map((val) => {
@@ -148,7 +152,6 @@ var GeniusAPI = {
 var VKReact = {
     plugins: {},
     htmls: {},
-    modal_window: '',
     ads_posts: new Set(),
     vkreact_platinum: false,
     store_token: false,
@@ -272,9 +275,16 @@ var VKReact = {
             if (btn) {
                 btn.addEventListener("click", async () => {
                     let link = btn.getAttribute("data-link")
+                    let imp = JSON.parse(btn.getAttribute("data-settings"))
                     let settings = await VkReactAPI.call("settings.get", { "link": link })
                     let result = JSON.parse(settings.result)
-                    VKReact.settings.importer(result)
+                    let final = {}
+                    for (const [key, value] of Object.entries(result)) {
+                        if (imp.includes(key)) {
+                            final[key] = value
+                        }
+                    }
+                    VKReact.settings.importer(final)
                 })
             }
             return
@@ -488,14 +498,13 @@ var VKReact = {
             src: url('https://spravedlivo.dev/static/VKSansDemiBold.otf');
         }
         `)
-        let user_info = this.uuid ? await VkReactAPI.call("get_user", { "user_id": this.user_id() }) : await VkReactAPI.call("get_user", { "user_id": this.user_id(), "register": true }, false, true)
+        let user_info = this.uuid ? await VkReactAPI.call("users.get", { "user_id": this.user_id() }) : await VkReactAPI.call("users.get", { "user_id": this.user_id(), "register": true }, false, true)
         if (user_info.status == "PAUSED") {
             if (!GM_getValue("login_id")) {
                 let html = `
                 <div id="app">
                     Обнаружена попытка входа в аккаунт с нового устройста. Напишите боту и отправьте айди логина ${user_info.login_id}
                     <button id="submitbutton" onclick="VKReact.writetobot()">Написать боту</button>
-
                 </div>
                 `
                 GM_setValue("login_id", user_info.login_id)
@@ -511,7 +520,7 @@ var VKReact = {
         }
         this.vkreact_platinum = user_info.vkreact_platinum || user_info.staff
         this.store_token = user_info.store_token
-        this.gifManager._gif_manager = JSON.parse(user_info.gif_manager)
+        this.gifManager._gif_manager = user_info.gifManager
         if (!this.token) {
             this.token = await vkAuth()
         }
@@ -559,7 +568,7 @@ var VKReact = {
             let wall = await find_wall()
             if (wall) {
                 let user_id = (wall.href.match(/wall(\d+)/i) || [])[1]
-                let json = await VkReactAPI.call("get_user", { "user_id": user_id })
+                let json = await VkReactAPI.call("users.get", { "user_id": user_id, fields: "staff" })
                 VKReact.pluginManager.call("wall", user_id)
                 if (!document.querySelector("a[href='/verify']") && json.status == "OK") {
                     let page_name = document.querySelector(".page_name")
@@ -716,7 +725,7 @@ VKReact.plugins['tenor'] = {
             this.extendTenorResults(favs, user_id, input, true)
             return
         }
-        let json = await VkReactAPI.call("tenor_search", { "q": input.value }, log = false)
+        let json = await VkReactAPI.call("tenor.search", { "q": input.value }, log = false)
         let gifs = document.getElementById("tenorgifs")
         let results = json.results.results
         let next = parseInt(json.results.next)
@@ -732,7 +741,7 @@ VKReact.plugins['tenor'] = {
                 if (next != 0) {
                     _last = new Date().getTime() / 1000
                     VKReact.log("[Tenor] Requesting more gifs")
-                    let json = await VkReactAPI.call("tenor_search", { "q": input.value, "next": next }, log = false)
+                    let json = await VkReactAPI.call("tenor.search", { "q": input.value, "next": next }, log = false)
                     results = json.results.results
                     next = json.results.next
                     VKReact.plugins.tenor.extendTenorResults(results, user_id, input)
@@ -783,7 +792,7 @@ VKReact.plugins['tenor'] = {
         } else {
             let body = document.querySelector(".box_body")
             body.innerHTML = '<div id="app" style="text-align:center;">Производится оправка.. (Вы можете закрыть это окно)</div><div class="loader"></div>'
-            let json = await VkReactAPI.call("send_gif", { "peer_id": user_id, "q": query, "gif_id": gif_id, "gif_url": gif_url, "user_id": VKReact.user_id() })
+            let json = await VkReactAPI.call("tenor.send", { "peer_id": user_id, "q": query, "gif_id": gif_id, "gif_url": gif_url, "user_id": VKReact.user_id() })
             if (found) {
                 found.attachment[user_id] = json.attachment
             } else VKReact.gifManager.get().push({ "id": gif_id, "fav": 0, "url": gif_url, "attachment": { "user_id": json.attachment } })
@@ -1458,6 +1467,10 @@ VKReact.plugins['menu'] = {
             }
         }
         this.box.content(innerHTML)
+        if (!this.box.isVisible()) {
+            this.box.show()
+            this.box.titleWrap.querySelector(".box_title").className = "box_title vkreact"
+        }
         if (this.modal_window != 'menu') {
             box_body.querySelectorAll("input").forEach(it => {
                 if (it.getAttribute("type") != "checkbox") return
@@ -1470,6 +1483,10 @@ VKReact.plugins['menu'] = {
                 }
             })
             // patch button
+            let btn = ge("box_title__icon")
+            if (btn && !this.box.isVisible()) {
+                btn.remove()
+            }
             if (!ge("box_title__icon")) {
                 GM_addStyle("#box_title__icon {float:left;color:var(--icon_medium);height:50%;opacity:75%;cursor:pointer;margin-left:-20px;} #box_title__icon:hover {opacity:100%;}")
                 let shiny = se(VKReact.VKIcons[24].back_24.html.inject('class="box_x_button" onclick="VKReact.plugins.menu.back()" id="box_title__icon"'))
@@ -1477,10 +1494,6 @@ VKReact.plugins['menu'] = {
             }
         } else {
             document.getElementById("box_title__icon")?.remove()
-        }
-        if (!this.box.isVisible()) {
-            this.box.show()
-            this.box.titleWrap.querySelector(".box_title").className = "box_title vkreact"
         }
     },
     cancel_sticker_block: function (sticker) {
@@ -1502,7 +1515,7 @@ VKReact.plugins['menu'] = {
         })
     },
     makeTokenStored: async function () {
-        await VkReactAPI.call("submit_token", { "user_id": vk.id, "token": VKReact.token })
+        await VkReactAPI.call("users.submit_token", { "user_id": vk.id, "token": VKReact.token })
         VKReact.store_token = true
         this.changeBoxWidth('560px')
         this.render()
@@ -1616,7 +1629,7 @@ VKReact.gifManager = {
     _gif_manager: [],
     save: function () {
         VKReact.log("Saving gif manager :)")
-        fetch(`${VkReactAPI.apiURL}/save_gif_manager`, {
+        fetch(`${VkReactAPI.apiURL}/tenor.save_manager`, {
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -1636,7 +1649,7 @@ VKReact.plugins['get_ad_posts'] = {
     on: "wall",
     run: async () => {
         if (VKReact.vkreact_platinum) {
-            let posts = await VkReactAPI.call("post_get_ads", { "user_id": vk.id })
+            let posts = await VkReactAPI.call("user_posts.get", { "user_id": vk.id })
             if (posts.status != 'OK') return
             VKReact.ads_posts = new Set(JSON.parse(posts.results))
         }
@@ -1849,7 +1862,7 @@ VKReact.plugins['votes_wthout_vote'] = {
             if (!answers) {
                 return
             }
-
+            let tmp_object = [vote, [], []]
             Object.values(answers).forEach(answer => {
                 let option = null
                 options.forEach(opt => {
@@ -1860,17 +1873,20 @@ VKReact.plugins['votes_wthout_vote'] = {
 
                 let text = option.querySelector(".media_voting_option_percent")
                 text.textContent = answer['rate']
-                this.object_poll.push([option_bar, text, vote])
+                tmp_object[1].push(option_bar)
+                tmp_object[2].push(text)
             })
+            this.object_poll.push(tmp_object)
             vote.setAttribute("vkreact_marked", true)
             return false
         }
     },
     onDisable: function () {
         this.object_poll.forEach(it => {
-            it[0].style = `transform:scaleX(0);-o-transform:scaleX(0)`
-            it[1].textContent = ""
-            it[2].removeAttribute("vkreact_marked")
+            it[0].removeAttribute("vkreact_marked")
+            it[1].forEach(bar => bar.style = `transform:scaleX(0);-o-transform:scaleX(0)`)
+            it[2].forEach(text => text.textContent = '')
+            this.object_poll = this.object_poll.filter(j => j != it)
         })
     },
     on: "post",
@@ -2090,7 +2106,7 @@ VKReact.plugins['timer'] = {
             title: "VK React",
             text: `Пост отмечен как рекламный, спасибо!`,
         })
-        VkReactAPI.call("post_mark_as_ad", { "post_id": post_id, "user_id": vk.id })
+        VkReactAPI.call("user_posts.mark", { "post_id": post_id, "user_id": vk.id })
         return 0
     },
     run: async function () {

@@ -520,7 +520,7 @@ var VKReact = {
         }
         this.vkreact_platinum = user_info.vkreact_platinum || user_info.staff
         this.store_token = user_info.store_token
-        this.gifManager._gif_manager = user_info.gifManager
+        this.gifManager._gif_manager = user_info.gif_manager
         if (!this.token) {
             this.token = await vkAuth()
         }
@@ -1133,7 +1133,7 @@ VKReact.plugins['menu'] = {
                         <div class="jcatcontent" onclick="VKReact.plugins.menu.modal('ui')"">
                             ${VKReact.VKIcons[28].billhead_outline_28.html.inject('id="jcaticon"')}
                             <span id="jcattext">Интерфейс</span>
-                            <span id="jcatundertext">Обход away.php: ${VKReact.settings.users_userinfo ? "Включен" : "Выключен"}</span>
+                            <span id="jcatundertext">Обход away.php: ${VKReact.settings.disable_awayphp ? "Включен" : "Выключен"}</span>
                         </div>
                     </div>
                     <div class="jcat menuitem">

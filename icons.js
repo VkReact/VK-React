@@ -9245,6 +9245,19 @@ var VKIcons = {
     }
 }
 
+VKIcons.findKey = function(key) {
+    let retValue
+    Object.values(VKIcons).forEach(values => {
+        for (const [k,v] of Object.entries(values)) {
+            if (v.link == key) {
+                retValue = v
+                return
+            }
+        }
+    })
+    return retValue
+}
+
 String.prototype.inject = function (text) {
     let svg = this.indexOf("<svg")
     let index = 5 + svg

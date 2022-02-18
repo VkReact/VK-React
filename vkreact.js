@@ -23,13 +23,17 @@ var VkAPI = {
     }
 }
 
+//let style = await fetch('https://cdnjs.cloudflare.com/ajax/libs/vkui/4.26.0/vkui.css')
+//style = await style.text()
+//GM_addStyle(style)
+
 window = unsafeWindow
 
 let xhr = GM_xmlhttpRequest
 GM_xmlhttpRequest = function (details) {
     return new Promise((resolve, reject) => {
         if (typeof details === 'string') {
-            details = {'url': details}
+            details = { 'url': details }
         }
         xhr({
             ...details,
@@ -56,6 +60,7 @@ function VkReactBox(options) {
                 this.box.show()
                 //this.box.updateBox()
                 this.box.titleWrap.querySelector(".box_title").className = "box_title vkreact"
+                this.box.bodyNode.closest(".popup_box_container").id = "vkreact_box"
             }
             return this
         },
@@ -83,7 +88,6 @@ var VkReactAPI = {
 }
 
 var GeniusAPI = {
-    apiURL: "https://cors-anywhere.dimden.dev/https://api.genius.com/",
     search_lyrics: async function (artist, title) {
         let headers = {
             'User-Agent': 'Genius/4.2.1 (Android; Android 10; google Pixel 3)',
@@ -412,8 +416,8 @@ var VKReact = {
             font-weight: bolder;
         }
         .jcat:hover {
-            background-color: rgb(211,211,211);
-            border-radius: 12px;
+            background-color: var(--background_hover);
+            border-radius: 10px;
         }
         #jcatundertext {
             display:block;
@@ -568,15 +572,7 @@ var VKReact = {
             let wall = await find_wall()
             if (wall) {
                 let user_id = (wall.href.match(/wall(\d+)/i) || [])[1]
-                let json = await VkReactAPI.call("users.get", { "user_id": user_id, fields: "staff" })
                 VKReact.pluginManager.call("wall", user_id)
-                if (!document.querySelector("a[href='/verify']") && json.status == "OK") {
-                    let page_name = document.querySelector(".page_name")
-                    if (json.staff) {
-                        page_name.appendChild(se(`<img src="https://spravedlivo.dev/static/vkreact.png" style="width:15px;height:15px;position:relative;left:10px;" onmouseover="showTooltip(this, { text: 'VK React Dev', black: true, toup: false })"></img>`))
-                    }
-                    //page_name.appendChild(se(`<a href="/verify" class="page_verified" onmouseover="pageVerifiedTip(this, {type: 1, oid: ${user_id}})"></a>`))
-                }
             }
         }
         this.registerMenu()
@@ -616,27 +612,24 @@ var VKReact = {
 
 VKReact.plugins['audio_patcher'] = {
     patch_topAudio: async function () {
-        if (!document.querySelector("#vkreact_lyrics")) {
-            let shuffle_button = await VKReact.waitExist("#audio_layer_tt > div.eltt_content._eltt_content > div > div > div._audio_page_player_wrap.audio_page_player_wrap.page_block > div > div.audio_page_player_ctrl.audio_page_player_btns._audio_page_player_btns.clear_fix > button.audio_page_player_btn.audio_page_player_shuffle._audio_page_player_shuffle")
+        if (!ge("vkreact_lyrics")) {
+            let shuffle_button = document.querySelector("#audio_layer_tt > div.eltt_content._eltt_content > div > div > div._audio_page_player_wrap.audio_page_player_wrap.page_block > div > div.audio_page_player_ctrl.audio_page_player_btns._audio_page_player_btns.clear_fix > button.audio_page_player_btn.audio_page_player_shuffle._audio_page_player_shuffle")
             shuffle_button.before(se(`<button id="vkreact_lyrics" onclick="VKReact.trackLyrics()" class="audio_page_player_btn audio_page_player_shuffle _audio_page_player_shuffle" onmouseover="AudioPage.showActionTooltip(this, 'Текст трека')" aria-label="Текст трека"><div class="down_text_icon">${VKReact.VKIcons[24].article_outline_24.html}</div></button>`))
-            top_audio.removeEventListener("click", this.patch_topAudio)
         }
     },
-    run: async function (url) {
-        let top_audio = document.querySelector(".top_audio_player.top_audio_player_enabled")
-        if (top_audio && !this.listener) {
-            this.listener = true
-            top_audio.addEventListener("click", this.patch_topAudio)
+    mutation: async function (node) {
+        if (VKReact.plugins.mutations.hasClass(node, ['_audio_page_layout', 'audio_page_layout', 'audio_page_layout2'])) {
+            this.patch_topAudio()
         }
+    },
+    url_switch: function (url) {
         if (/audios/i.test(url) && !ge('vkreact_lyrics2')) {
             let shuffle_button = document.querySelector("#content > div > div._audio_page_player_wrap.audio_page_player_wrap.page_block > div > div.audio_page_player_ctrl.audio_page_player_btns._audio_page_player_btns.clear_fix > button.audio_page_player_btn.audio_page_player_shuffle._audio_page_player_shuffle")
             if (shuffle_button) {
                 shuffle_button.before(se(`<button id="vkreact_lyrics2" onclick="VKReact.trackLyrics()" class="audio_page_player_btn audio_page_player_shuffle _audio_page_player_shuffle" onmouseover="AudioPage.showActionTooltip(this, 'Текст трека')" aria-label="Текст трека"><div class="down_text_icon">${VKReact.VKIcons[24].article_outline_24.html}</div></button>`))
             }
         }
-    },
-    on: "url_switch",
-    model: "track_lyrics"
+    }
 }
 
 VKReact.plugins['audio_toright'] = {
@@ -658,7 +651,7 @@ VKReact.plugins['userinfo'] = {
             if (!label || !label[0]) return
             label[0].insertAdjacentHTML('beforebegin', `
             <div id="vkreact_userinfo" class="label fl_l">Айди:</div>
-            <div class="labeled underlined"><font color="#2a5885">${user_id}</font></div><br>`)
+            <div class="labeled underlined" id="vkreact_idlabel">${user_id}</div><br>`)
             let fetched = await fetch(`/foaf.php?id=${user_id}`)
             let text = await fetched.text()
             let parser = new DOMParser()
@@ -690,6 +683,9 @@ VKReact.plugins['userinfo'] = {
     },
     on: "wall",
     model: "users_userinfo",
+    style: `#vkreact_idlabel {
+        color:var(--text_link);
+    }`
 }
 
 
@@ -923,7 +919,7 @@ VKReact.plugins['patch_chat'] = {
         let cur_loc = clone(nav.objLoc);
         nav.go(extend(cur_loc, { 'sel': `c${chat_id}` }))
     },
-    getCreateHTML(user_id) {
+    getCreateHTML: function (user_id) {
         let createHTML = `
         <div id="vkl_ui_action_menu_vkreact" class="vkl im-page--header-more im-page--header-menu-button _im_dialog_action_wrapper" data-peer="${user_id}">
             <div class="vkl ui_actions_menu_wrap _ui_menu_wrap" onmouseover="uiActionsMenu.show(this);" onmouseout="uiActionsMenu.hide(this);">
@@ -999,8 +995,8 @@ VKReact.plugins['patch_chat'] = {
         dnr.className = `ui_actions_menu_item im-action _im_action vkreact im-action_dnt ${enableDNT ? "on" : "off"}`
         dnr.textContent = enableDNT ? "Выключить неписалку" : "Включить неписалку"
     },
-    mark_as_read: async function(user_id) {
-        await VkAPI.call("messages.markAsRead", {"peer_id": user_id})
+    mark_as_read: async function (user_id) {
+        await VkAPI.call("messages.markAsRead", { "peer_id": user_id })
         Notifier.showEvent({
             title: "VK React",
             text: `Диалог помечен как прочитанный`,
@@ -1091,6 +1087,105 @@ async function vkAuth() {
 }
 
 
+VKReact.plugins['checkmarks'] = {
+    wall: async function (user_id) {
+        let json = await VkReactAPI.call("checkmarks.get", { "user_ids": user_id })
+        let page_name = document.querySelector(".page_name")
+        if (page_name && !page_name.hasAttribute("vkreact_checkmarks") && json.status == "OK") {
+            let children = Array.from(page_name.children)
+            json.items[user_id].forEach(item => {
+                let element = se(`<div class="page_verified vkreact ${item.key}" onmouseover="showTooltip(this, { text: '${item.tooltip}', black: true, toup: false })"></div>`)
+                if (item.image) {
+                    element.style.backgroundImage = `url('${VKIcons.findKey(item.image).html.colorize(getComputedStyle(document.body).getPropertyValue('--accent')).as_data()}')`
+                }
+                children[0] ? children[0].before(element) : page_name.appendChild(element)
+            })
+            page_name.setAttribute("vkreact_checkmarks", "true")
+        }
+    },
+    timer: async function() {
+        let rows = document.querySelectorAll(".friends_user_row")
+        let request_ids = {} // id to row
+        rows.forEach(row => {
+            if (row.hasAttribute("vkreact_checkmarks")) return
+            let user_id = (row.id.match(/friends_user_row(\d+)/i) || [])[1]
+            row.setAttribute("vkreact_checkmarks", "true")
+            if (!user_id) return
+            request_ids[user_id] = row.querySelector(".friends_field.friends_field_title")
+        })
+        let author_name = document.querySelector("#pv_author_name")
+        if (author_name && !author_name.hasAttribute("vkreact_checkmarks")) {
+            author_name.setAttribute("vkreact_checkmarks", "true")
+            let user_id = await this.checkmark_for_ownername(author_name)
+            request_ids[user_id] = author_name
+        }
+        let video_author_name = document.querySelector(".VideoLayerInfo__authorName")
+        if (video_author_name && !video_author_name.hasAttribute("vkreact_checkmarks")) {
+            video_author_name.setAttribute("vkreact_checkmarks", "true")
+            let user_id = await this.checkmark_for_ownername(video_author_name)
+            request_ids[user_id] = video_author_name
+        }
+        if (Object.keys(request_ids).length > 0) {
+            let json = await VkReactAPI.call("checkmarks.get", { "user_ids": Object.keys(request_ids).join(",") })
+            let items = json.items
+            for (const [key, value] of Object.entries(items)) {
+                let row = request_ids[key]
+                let children
+                value.forEach((item, index) => {
+                    children = Array.from(row.children)
+                    let element = se(`<div class="page_verified vkreact ${item.key}" onmouseover="showTooltip(this, { text: '${item.tooltip}', black: true, toup: false })"></div>`)
+                    if (item.image) {
+                        element.style.backgroundImage = `url('${VKIcons.findKey(item.image).html.colorize(getComputedStyle(document.body).getPropertyValue('--accent')).as_data()}')`
+                    }
+                    row.appendChild(element)
+                })
+            }
+        }
+    },
+    checkmark_for_ownername: async function(element) {
+        let user = element.querySelector("a[href]").getAttribute("href").substring(1)
+        let user_info = await VkAPI.call("users.get", {"user_ids": user})
+        let user_id = user_info[0].id
+        return user_id
+    },
+    style: `
+    .page_verified.vkreact{
+        padding-right: 17px !important;
+        background-size: 17px !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+    }
+    .page_verified.vkreact.vkreact_dev {
+        background: url('https://spravedlivo.dev/static/vkreact.png');
+    }
+    `
+}
+
+
+class SelectBox {
+    init(element) {
+        this.toggled = element.hasAttribute("toggled")
+        this.sb = element
+        this.sb.addEventListener("click", (event) => this.toggle(this, event))
+        this.items_wrap = element.querySelector("#vkreact_selectbox_items")
+        this.items = Array.from(element.querySelectorAll("#vkreact_selectbox_item"))
+        this.items.forEach(it => it.addEventListener("click", (event) => this.onItemClick(this, it, event)))
+        this.updateText(this.items[0].querySelector("span").textContent)
+    }
+    onItemClick(context, item) {
+        context.updateText(item.querySelector("span").textContent)
+    }
+    updateText(text) {
+        this.selected = text
+        this.sb.querySelector("span").textContent = text
+    }
+    toggle(context) {
+        context.items_wrap.style.display = this.toggled ? "none" : "block"
+        context.toggled = !context.toggled
+        if (this.ontoggle) this.ontoggle()
+    }
+}
+
 VKReact.plugins['menu'] = {
     modal_window: "menu",
     window_history: new Set(["menu"]),
@@ -1101,6 +1196,7 @@ VKReact.plugins['menu'] = {
         }
         let box_body = document.querySelector(".box_body")
         let innerHTML = ``
+        let rendered = false
         if (this._latest_width) this.changeBoxWidth(this._latest_width)
         switch (this.modal_window) {
             case "menu":
@@ -1147,7 +1243,7 @@ VKReact.plugins['menu'] = {
                         <div class="jcatcontent" onclick="VKReact.plugins.menu.modal('messenger')"">
                             ${VKReact.VKIcons[28].messages_outline_28.html.inject('id="jcaticon"')}
                             <span id="jcattext">Мессенджер</span>
-                            <span id="jcatundertext">Хуета</span>
+                            <span id="jcatundertext">Неписалка и нечиталка</span>
                         </div>
                     </div>
                 </div>`
@@ -1260,13 +1356,17 @@ VKReact.plugins['menu'] = {
             case "users":
                 {
                     innerHTML = `
-                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'users_userinfo')">
-                    Информация о пользователях
-                    <label class="switch" id="row_button">
-                     <input type="checkbox">
-                     <span class="vkreact_slider round"></span>
-                    </label>
-                </div>`
+                    <div class="jcat" onclick="VKReact.plugins.menu.modal('checkmarks')">
+                        Галочки
+                    </div>
+                    <div class="vkuiSpacing vkuiSpacing--ios vkuiSpacing--separator vkuiSpacing--separator-center" style="height: 8px;"></div>
+                    <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'users_userinfo')">
+                        Информация о пользователях
+                        <label class="switch" id="row_button">
+                         <input type="checkbox">
+                         <span class="vkreact_slider round"></span>
+                        </label>
+                    </div>`
                     break
                 }
             case "ui":
@@ -1401,6 +1501,86 @@ VKReact.plugins['menu'] = {
                 `
                 break
             }
+            case "checkmarks": {
+                innerHTML = `
+                <div id="app">
+                    <span id="jcattext">Отображение галочек</span>
+                    <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'checkmarks_display_vkreact')">
+                        VK React
+                        <label class="switch" id="row_button">
+                         <input type="checkbox">
+                         <span class="vkreact_slider round"></span>
+                        </label>
+                    </div>
+                    <div class="vkuiSpacing vkuiSpacing--ios vkuiSpacing--separator vkuiSpacing--separator-center" style="height: 8px;"></div>
+                    <span id="jcattext">Своя галочка</span>
+                    <span id="jcatundertext" style="padding-left:8px;">Только для пользователей<span id="app" class="vkreact_span_animated platinum" style="display:inline;">Platinum</span></span>
+                    <div id="vkreact_selectbox">
+                        <div id="expand_button"></div>
+                        <span></span>
+                        <div id="vkreact_selectbox_items">
+                        </div>
+                    </div>
+                    <button id="submitbutton">Установить</button>
+                </div>`
+                this.box.content(innerHTML)
+                let style = getComputedStyle(document.body)
+                let items = document.querySelector("#vkreact_selectbox_items")
+                let accent = style.getPropertyValue("--accent")
+                let obj = {}
+                Object.values(VKIcons).forEach(values => { // optimize this bitch
+                    for (const [k, v] of Object.entries(values)) {
+                        obj[k] = v
+                    }
+                })
+                
+                rendered = true
+                let sb = new SelectBox()
+                sb.addItem = function(k, v) {
+                    let element = se(`
+                    <div id="vkreact_selectbox_item">
+                        <div id="vkreact_selectbox_item_image"></div>
+                        <span id="vkreact_selectbox_item_text">${k}</span>
+                    </div>
+                    `)
+                    element.querySelector("#vkreact_selectbox_item_image").style.backgroundImage = `url('${v.html.colorize(accent).as_data()}')`
+                    element.addEventListener("click", (event) => this.onItemClick(this, element, event))
+                    items.appendChild(element)
+                    if (this.items) {
+                        this.items.push(element)
+                    }
+                }
+                let pos = -1
+                function sbAddItems() {
+                    for (const [k,v] of Object.entries(obj).slice(pos+1, pos+30)) {
+                        sb.addItem(k,v)
+                    }
+                    pos += 30
+                }
+                sb.ontoggle = function() {
+                    if (!this.toggled) {
+                        this.items.forEach(it => it.remove())
+                        pos = -1
+                        sbAddItems()
+                    }
+                }
+                sbAddItems()
+                sb.init(document.querySelector("#vkreact_selectbox"))
+                document.querySelector("#submitbutton").onclick = function() {
+                    VkReactAPI.call("checkmarks.set_custom", {"user_id": vk.id, "checkmark": obj[sb.selected].link})
+                    if (!VKReact.vkreact_platinum) {
+                        alert("Галочка установлена, но станет видна пользователям только после приобритения Platinum")
+                    }
+                }
+
+                document.querySelector("#vkreact_selectbox_items").addEventListener("scroll", event => {
+                    const e = event.target;
+                    if (e.scrollHeight - e.scrollTop === e.clientHeight) {
+                        sbAddItems()
+                    }
+                })
+                break
+            }
             case "messenger": {
                 innerHTML = `
                 <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'dr_ls')">
@@ -1466,15 +1646,17 @@ VKReact.plugins['menu'] = {
                 break
             }
         }
-        this.box.content(innerHTML)
+        if (!rendered) this.box.content(innerHTML)
         if (!this.box.isVisible()) {
             this.box.show()
             this.box.titleWrap.querySelector(".box_title").className = "box_title vkreact"
+            this.box.bodyNode.closest(".popup_box_container").id = "vkreact_box"
         }
         if (this.modal_window != 'menu') {
             box_body.querySelectorAll("input").forEach(it => {
                 if (it.getAttribute("type") != "checkbox") return
                 let onclick = it.parentElement.parentElement.getAttribute("onclick")
+                if (!onclick) return
                 let param = getParamNames(onclick)[1]
                 if (param) {
                     let firstParam = param.replace(/'/g, '')
@@ -1483,14 +1665,9 @@ VKReact.plugins['menu'] = {
                 }
             })
             // patch button
-            let btn = ge("box_title__icon")
-            if (btn && !this.box.isVisible()) {
-                btn.remove()
-            }
-            if (!ge("box_title__icon")) {
-                GM_addStyle("#box_title__icon {float:left;color:var(--icon_medium);height:50%;opacity:75%;cursor:pointer;margin-left:-20px;} #box_title__icon:hover {opacity:100%;}")
+            if (!this.box.titleWrap.querySelector("#box_title__icon")) {
                 let shiny = se(VKReact.VKIcons[24].back_24.html.inject('class="box_x_button" onclick="VKReact.plugins.menu.back()" id="box_title__icon"'))
-                document.getElementsByClassName("box_title")[0].appendChild(shiny)
+                this.box.titleWrap.querySelector(".box_x_button").before(shiny)
             }
         } else {
             document.getElementById("box_title__icon")?.remove()
@@ -1593,7 +1770,65 @@ VKReact.plugins['menu'] = {
             element.checked = value
         }
     },
-    style: `#box_layer > div.popup_box_container > div, #box_layer > div.popup_box_container {
+    style: `
+    #box_title__icon {
+        float:left;
+        color:var(--icon_medium);
+        height:50%;
+        opacity:75%;
+        cursor:pointer;
+    }
+    #box_title__icon:hover {
+        opacity:100%;
+    }
+    #vkreact_selectbox {
+        border: 1px solid var(--field_border);
+        border-radius: 10px;
+        background: var(--field_border);
+        cursor: pointer;
+        padding: 5px 0px 5px 0px;
+        width: 50%;
+    }
+    #vkreact_selectbox_items {
+        position: absolute;
+        width: inherit;
+        height: 300px;
+        overflow-x: hidden;
+        overflow-y: scroll;
+        background-color: var(--field_border);
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
+        padding: 5px 0;
+        display: none;
+    }
+    #vkreact_selectbox > span {
+        position: relative;
+        left: 10px;
+    }
+    #vkreact_selectbox_item {
+        padding: 10px 0px 10px 0px;
+    }
+    #vkreact_selectbox_item:hover {
+        background-color: var(--text_secondary);
+    }
+    #expand_button {
+        background-image: url(https://raw.githubusercontent.com/VKCOM/icons/master/src/svg/24/chevron_down_24.svg);
+        width: 24px;
+        height: 24px;
+        float: right;
+    }
+    #vkreact_selectbox_item_image {
+        background-image: url(https://spravedlivo.dev/static/vkreact.png);
+        background-repeat: no-repeat;
+        background-size: 24px;
+        float: left;
+        width: 24px;
+        height: 24px;
+    }
+    #vkreact_selectbox_item_text {
+        padding-left: 10px;
+    }
+    #box_layer > div.popup_box_container[id="vkreact_box"] > div, #box_layer > div.popup_box_container[id="vkreact_box"] {
         transition: width 2s;
     }
     .vkreact_span_animated {
@@ -1768,12 +2003,10 @@ VKReact.plugins['messages'] = {
 
 VKReact.plugins['patch_stickers'] = {
     removed: [],
-    start_emitted: false,
-    run: function (it) {
-        if (!this.start_emitted) {
-            this.removed = JSON.parse((VKReact.settings.stickers_remove || "[]"))
-            this.start_emitted = true
-        }
+    start: function () {
+        this.removed = JSON.parse((VKReact.settings.stickers_remove || "[]"))
+    },
+    message: function (it) {
         let sticker_row = it.querySelector(".im_sticker_row")
         if (!sticker_row) return
         let sticker_att = sticker_row.querySelector(".im_gift")
@@ -1810,7 +2043,6 @@ VKReact.plugins['patch_stickers'] = {
         }
         sticker_att.setAttribute("vkreact_marked", true) //almost there
     },
-    on: "message",
     style: `
     .vkreact_blocksticker {
         height: 20px;
@@ -1976,7 +2208,6 @@ VKReact.plugins['feed_disable_comments'] = {
 
 VKReact.plugins['mutations'] = {
     run: function () {
-        // audioController.register()
         this.observer = new MutationObserver(this.onMutations)
         this.observer.observe(document.body, {
             childList: true,
@@ -1986,9 +2217,19 @@ VKReact.plugins['mutations'] = {
     onMutations: function (mutations) {
         for (let mutation of mutations) {
             for (let node of (mutation.addedNodes || [])) {
+                if (node.nodeType !== 1) {
+                    continue
+                }
                 VKReact.pluginManager.call("mutation", node)
             }
         }
+    },
+    hasClass: function (element, classes) {
+        let retval = 0
+        for (let c of classes) {
+            retval += Boolean(element && element.classList.contains(c))
+        }
+        return Boolean(retval)
     },
     on: "start"
 }
@@ -1997,10 +2238,7 @@ VKReact.plugins['mutations'] = {
 
 VKReact.plugins['audio'] = {
     run: function (node) {
-        if (node.nodeType !== 1) {
-            return
-        }
-        if (this.hasClass(node, ['audio_row__actions', '_audio_row__actions'])) {
+        if (VKReact.plugins.mutations.hasClass(node, ['audio_row__actions', '_audio_row__actions'])) {
             this.activateAudioRow(node)
         }
     },
@@ -2075,13 +2313,6 @@ VKReact.plugins['audio'] = {
         let audioRow = e.target.parentElement.parentElement.parentElement.parentElement.parentElement
         let full_id = audioRow.getAttribute("data-full-id")
         e.target.setAttribute("data-full-id", full_id)
-    },
-    hasClass: function (element, classes) {
-        let retval = 0
-        for (let c of classes) {
-            retval += Boolean(element && element.classList.contains(c))
-        }
-        return Boolean(retval)
     },
     style: `.audio_row__vkreact_download {
           background: url('!VKReact.VKIcons[20].download_outline_20.html.as_data()!') no-repeat;

@@ -36,6 +36,7 @@ This repository contains source code for extention client. We do not reveal sour
 | Place audios to right | UI | Places audio section after photos block |
 | Track lyrics | UI | Show lyrics of track (genius api) |
 | Tenor gifs | UI | Gifs from tenor like in discord |
+| Audio Downloading | UI |  |
 | Configs | VK React | Cloud configs |
 | Filter shortlinks | Post ads filter | Remove posts with goo.gl, bit.ly etc. |
 | Filter referal | Post ads filter | Remove posts with ali.pub etc. |
@@ -44,3 +45,5 @@ This repository contains source code for extention client. We do not reveal sour
 | Blocked stickers | Messenger | Blocked certain stickers |
 | Do Not Read | Messenger | Customization for do not read |
 | Do Not Type | Messenger | Customization for do not type |
+| Checkmarks display: VK React | Checkmarks | Display checkmarks from VK React |
+| Custom checkmarks | Checkmarks | Set custom checkmark |

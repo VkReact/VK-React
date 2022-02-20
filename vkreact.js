@@ -1429,6 +1429,13 @@ VKReact.plugins['menu'] = {
                      <span class="vkreact_slider round"></span>
                     </label>
                 </div>
+                <div class="jcat" onclick="VKReact.plugins.menu.change(this, 'music_integration')">
+                    Интеграция музыка с BetterDiscord
+                    <label class="switch" id="row_button">
+                     <input type="checkbox">
+                     <span class="vkreact_slider round"></span>
+                    </label>
+                </div>
                 `
                     break
                 }
@@ -2174,6 +2181,92 @@ VKReact.plugins['feed_disable_recc'] = {
 //    on: "timer",
 //    model: "disable_ads"
 //}
+
+let jsonify = JSON.stringify
+
+VKReact.plugins['music_integration'] = {
+    connect: function() {
+        this.socket = new WebSocket("ws://localhost:6374")
+        this.socket.onopen = () => {
+            console.log("WS connection established!")
+            this.send_data()
+        }
+        this.socket.onclose = async (event) => {
+            console.log("WS hang up. Reconnecting...")
+            await VKReact.sleep(300)
+            this.connect()
+        }
+        this.socket.onerror = async () => {
+            console.log("WS Unavailible. Reconnecting...")
+            await VKReact.sleep(300)
+            this.connect()
+        }
+        this.socket.onmessage = (event) => {
+            let data = event.data
+            let parsed = JSON.parse(data)
+            switch (parsed.command) {
+                case "request_data": {
+                    this.send_data()
+                    break
+                }
+                case "play_pause": {
+                    let player = getAudioPlayer()
+                    if (!player) {
+                        return
+                    }
+                    player.isPlaying() ? player.pause() : player.play()
+                    break
+                }
+                case "seek_time": {
+                    let player = getAudioPlayer()
+                    if (!player) {
+                        return
+                    }
+                    player.seekToTime(parsed.time)
+                    break
+                }
+                default: {
+                    let player = getAudioPlayer()
+                    if (!player) {
+                        return
+                    }
+                    player[parsed.command]()
+                    break
+                }
+            }
+        }
+    },
+    start: function() {
+        if (!VKReact.settings.music_integration) return
+        this.connect()
+        window.addEventListener("unload", () => {
+            if (this.socket) {
+                this.socket.close()
+            }
+        })
+    },
+    send_data: function() {
+        if (VKReact.plugins.music_integration.socket.readyState !== 1) return
+        let audio_player = getAudioPlayer()
+        if (!audio_player) {
+            this.socket.send(jsonify({"command": "update_info", "status": "NO_PLAYER"}))
+            return
+        }
+        if (!this.subscribed) {
+            audio_player.subscribe("start", (() => {this.send_data()}))
+            audio_player.subscribe("pause", (() => {this.send_data()}))
+            audio_player.subscribe("progress", (() => {this.send_data()}))
+            this.subscribed = true
+        }
+        let audio = audio_player.getCurrentAudio()
+        let div = document.createElement('textarea');
+        div.innerHTML = audio[3]
+        let decodedTitle = div.firstChild.nodeValue
+        div.innerHTML = audio[4]
+        let decodedArtist = div.firstChild.nodeValue
+        VKReact.plugins.music_integration.socket.send(jsonify({"command": "update_info", "status": audio_player.isPlaying() ? "PLAY" : "PAUSE", "artist": decodedArtist, "name": decodedTitle, "cover": audio[14].split(",")[0], "progress": (audio_player.getCurrentProgress()) * 100, "duration": audio[5]}))
+    }
+}
 
 VKReact.plugins['disable_reposts'] = {
     object_poll: [],

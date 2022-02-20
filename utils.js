@@ -411,7 +411,7 @@ VKReact.clientside_settings = {
    'ads_filter_list': false, 'stickers_remove': "[]", 'stickers_removeall': false,
    'dr_manager': "{}", 'dr_ls': false, 'dr_chat': false, 'dr_group': false,
    'dt_manager': "{}", 'dt_ls': false, 'dt_chat': false, 'dt_group': false, "audiorow_download_button": true, "audiorow_lyrics": true,
-   'dr_stories': false, "checkmarks_display_vkreact": true
+   'dr_stories': false, "checkmarks_display_vkreact": true, "music_integration": false
 }
 VKReact.serverside_settings = ["online", "friends_autoaccept", "friends_autoaccept_blocked", "friends_removeblocked"]
 

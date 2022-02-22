@@ -1089,21 +1089,29 @@ async function vkAuth() {
 
 VKReact.plugins['checkmarks'] = {
     wall: async function (user_id) {
-        let json = await VkReactAPI.call("checkmarks.get", { "user_ids": user_id })
+        let request_ids = {}
         let page_name = document.querySelector(".page_name")
-        if (page_name && !page_name.hasAttribute("vkreact_checkmarks") && json.status == "OK") {
-            let children = Array.from(page_name.children)
-            json.items[user_id].forEach(item => {
-                let element = se(`<div class="page_verified vkreact ${item.key}" onmouseover="showTooltip(this, { text: '${item.tooltip}', black: true, toup: false })"></div>`)
-                if (item.image) {
-                    element.style.backgroundImage = `url('${VKIcons.findKey(item.image).html.colorize(getComputedStyle(document.body).getPropertyValue('--accent')).as_data()}')`
-                }
-                children[0] ? children[0].before(element) : page_name.appendChild(element)
-            })
+        if (page_name && !page_name.hasAttribute("vkreact_checkmarks")) {
+            request_ids[user_id] = page_name
+            this.place_checkmarks(request_ids)
             page_name.setAttribute("vkreact_checkmarks", "true")
         }
     },
-    timer: async function() {
+    all_posts: function (rows) {
+        let request_ids = {}
+        rows.forEach(row => {
+            if (row.getAttribute("vkreact_checkmarks")) return
+            let from_id = row.querySelector(".post_author > a[data-from-id]")
+            if (!from_id) return
+            from_id = from_id.getAttribute("data-from-id")
+            let request = row.querySelector(".post_author")
+            if (request_ids[from_id]) request_ids[from_id].push(request)
+            else request_ids[from_id] = [request]
+            row.setAttribute("vkreact_checkmarks", "true")
+        })
+        this.place_checkmarks(request_ids, "display: inline-block;")
+    },
+    timer: async function () {
         let rows = document.querySelectorAll(".friends_user_row")
         let request_ids = {} // id to row
         rows.forEach(row => {
@@ -1125,26 +1133,34 @@ VKReact.plugins['checkmarks'] = {
             let user_id = await this.checkmark_for_ownername(video_author_name)
             request_ids[user_id] = video_author_name
         }
+        this.place_checkmarks(request_ids)
+    },
+    place_checkmarks: async function (request_ids, apply_style = "") {
         if (Object.keys(request_ids).length > 0) {
             let json = await VkReactAPI.call("checkmarks.get", { "user_ids": Object.keys(request_ids).join(",") })
             let items = json.items
             for (const [key, value] of Object.entries(items)) {
                 let row = request_ids[key]
-                let children
                 value.forEach((item, index) => {
-                    children = Array.from(row.children)
-                    let element = se(`<div class="page_verified vkreact ${item.key}" onmouseover="showTooltip(this, { text: '${item.tooltip}', black: true, toup: false })"></div>`)
+                    let element = se(`<div class="page_verified vkreact ${item.key}" style="${apply_style}" onmouseover="showTooltip(this, { text: '${item.tooltip}', black: true, toup: false })"></div>`)
                     if (item.image) {
                         element.style.backgroundImage = `url('${VKIcons.findKey(item.image).html.colorize(getComputedStyle(document.body).getPropertyValue('--accent')).as_data()}')`
                     }
-                    row.appendChild(element)
+                    if (isArray(row)) {
+                        row.forEach((elem, index) => {
+                            if (index != 0) elem.appendChild(element.cloneNode())
+                            else elem.appendChild(element)
+                        })
+                    }
+                    else row.appendChild(element)
+
                 })
             }
         }
     },
-    checkmark_for_ownername: async function(element) {
+    checkmark_for_ownername: async function (element) {
         let user = element.querySelector("a[href]").getAttribute("href").substring(1)
-        let user_info = await VkAPI.call("users.get", {"user_ids": user})
+        let user_info = await VkAPI.call("users.get", { "user_ids": user })
         let user_id = user_info[0].id
         return user_id
     },
@@ -1540,10 +1556,10 @@ VKReact.plugins['menu'] = {
                         obj[k] = v
                     }
                 })
-                
+
                 rendered = true
                 let sb = new SelectBox()
-                sb.addItem = function(k, v) {
+                sb.addItem = function (k, v) {
                     let element = se(`
                     <div id="vkreact_selectbox_item">
                         <div id="vkreact_selectbox_item_image"></div>
@@ -1559,12 +1575,12 @@ VKReact.plugins['menu'] = {
                 }
                 let pos = -1
                 function sbAddItems() {
-                    for (const [k,v] of Object.entries(obj).slice(pos+1, pos+30)) {
-                        sb.addItem(k,v)
+                    for (const [k, v] of Object.entries(obj).slice(pos + 1, pos + 30)) {
+                        sb.addItem(k, v)
                     }
                     pos += 30
                 }
-                sb.ontoggle = function() {
+                sb.ontoggle = function () {
                     if (!this.toggled) {
                         this.items.forEach(it => it.remove())
                         pos = -1
@@ -1573,8 +1589,8 @@ VKReact.plugins['menu'] = {
                 }
                 sbAddItems()
                 sb.init(document.querySelector("#vkreact_selectbox"))
-                document.querySelector("#submitbutton").onclick = function() {
-                    VkReactAPI.call("checkmarks.set_custom", {"user_id": vk.id, "checkmark": obj[sb.selected].link})
+                document.querySelector("#submitbutton").onclick = function () {
+                    VkReactAPI.call("checkmarks.set_custom", { "user_id": vk.id, "checkmark": obj[sb.selected].link })
                     if (!VKReact.vkreact_platinum) {
                         alert("Галочка установлена, но станет видна пользователям только после приобритения Platinum")
                     }
@@ -2185,13 +2201,13 @@ VKReact.plugins['feed_disable_recc'] = {
 let jsonify = JSON.stringify
 
 VKReact.plugins['music_integration'] = {
-    connect: function() {
+    connect: function () {
         this.socket = new WebSocket("ws://localhost:6374")
         this.socket.onopen = () => {
             console.log("WS connection established!")
             this.send_data()
         }
-        this.socket.onclose = async (event) => {
+        this.socket.onclose = async () => {
             console.log("WS hang up. Reconnecting...")
             await VKReact.sleep(300)
             this.connect()
@@ -2236,7 +2252,7 @@ VKReact.plugins['music_integration'] = {
             }
         }
     },
-    start: function() {
+    start: function () {
         if (!VKReact.settings.music_integration) return
         this.connect()
         window.addEventListener("unload", () => {
@@ -2245,17 +2261,17 @@ VKReact.plugins['music_integration'] = {
             }
         })
     },
-    send_data: function() {
+    send_data: function () {
         if (VKReact.plugins.music_integration.socket.readyState !== 1) return
         let audio_player = getAudioPlayer()
         if (!audio_player) {
-            this.socket.send(jsonify({"command": "update_info", "status": "NO_PLAYER"}))
+            this.socket.send(jsonify({ "command": "update_info", "status": "NO_PLAYER" }))
             return
         }
         if (!this.subscribed) {
-            audio_player.subscribe("start", (() => {this.send_data()}))
-            audio_player.subscribe("pause", (() => {this.send_data()}))
-            audio_player.subscribe("progress", (() => {this.send_data()}))
+            audio_player.subscribe("start", (() => { this.send_data() }))
+            audio_player.subscribe("pause", (() => { this.send_data() }))
+            audio_player.subscribe("progress", (() => { this.send_data() }))
             this.subscribed = true
         }
         let audio = audio_player.getCurrentAudio()
@@ -2264,7 +2280,7 @@ VKReact.plugins['music_integration'] = {
         let decodedTitle = div.firstChild.nodeValue
         div.innerHTML = audio[4]
         let decodedArtist = div.firstChild.nodeValue
-        VKReact.plugins.music_integration.socket.send(jsonify({"command": "update_info", "status": audio_player.isPlaying() ? "PLAY" : "PAUSE", "artist": decodedArtist, "name": decodedTitle, "cover": audio[14].split(",")[0], "progress": (audio_player.getCurrentProgress()) * 100, "duration": audio[5]}))
+        VKReact.plugins.music_integration.socket.send(jsonify({ "command": "update_info", "status": audio_player.isPlaying() ? "PLAY" : "PAUSE", "artist": decodedArtist, "name": decodedTitle, "cover": audio[14].split(",")[0], "progress": (audio_player.getCurrentProgress()) * 100, "duration": audio[5] }))
     }
 }
 
@@ -2434,20 +2450,24 @@ VKReact.plugins['timer'] = {
         return 0
     },
     run: async function () {
-        setInterval(() => {
+        setInterval(async () => {
             VKReact.pluginManager.call("timer")
             if (VKReact.settings.disable_ads) document.querySelectorAll(".ads_ad_box").forEach(it => it.parentElement.parentElement.parentElement.remove())
             let posts = document.querySelectorAll("div[id*=\"post\"]")
-            posts.forEach(async row => {
+            let matching = []
+            for (let row of posts) {
                 let post_id = row.getAttribute("data-post-id")
                 if (/post-?\d+_\d+/i.test(row.id) && row.style.display != "none") {
                     let r = await VKReact.pluginManager.call("post", row, post_id)
                     if (r.has(true)) {
                         row.style.display = "none"
                     }
+                    else {
+                        matching.push(row)
+                    }
                 }
-
-            })
+            }
+            VKReact.pluginManager.call("all_posts", matching)
             if (VKReact.settings.feed_disable_recc) {
                 document.querySelector("#friends_possible_block")?.remove()
             }

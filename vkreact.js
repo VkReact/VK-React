@@ -182,7 +182,7 @@ var VKReact = {
         let btn = await this.waitExist(".im-send-btn.im-chat-input--send._im_send.im-send-btn_audio")
         btn.className = "im-send-btn im-chat-input--send _im_send im-send-btn_send"
         let btn2 = await this.waitExist(".im-send-btn.im-chat-input--send._im_send.im-send-btn_send")
-        await this.sleep(1000)
+        await this.sleep(3000)
         btn2.click()
     },
     waitExist: async function (selector, times = -1) {
@@ -1093,9 +1093,15 @@ VKReact.plugins['checkmarks'] = {
         let page_name = document.querySelector(".page_name")
         if (page_name && !page_name.hasAttribute("vkreact_checkmarks")) {
             request_ids[user_id] = page_name
-            this.place_checkmarks(request_ids)
             page_name.setAttribute("vkreact_checkmarks", "true")
         }
+        let contacts = document.querySelectorAll("#group_contacts .line_cell.clear_fix")
+        contacts.forEach(it => {
+            if (it.hasAttribute("vkreact_marked")) return
+            request_ids[it.getAttribute("data-id")] = it.querySelector(".people_name")
+            it.setAttribute("vkreact_marked", "true")
+        })
+        this.place_checkmarks(request_ids)
     },
     all_posts: function (rows) {
         let request_ids = {}
@@ -2280,7 +2286,8 @@ VKReact.plugins['music_integration'] = {
         let decodedTitle = div.firstChild.nodeValue
         div.innerHTML = audio[4]
         let decodedArtist = div.firstChild.nodeValue
-        VKReact.plugins.music_integration.socket.send(jsonify({ "command": "update_info", "status": audio_player.isPlaying() ? "PLAY" : "PAUSE", "artist": decodedArtist, "name": decodedTitle, "cover": audio[14].split(",")[0], "progress": (audio_player.getCurrentProgress()) * 100, "duration": audio[5] }))
+        VKReact.plugins.music_integration.socket.send(jsonify({ "command": "update_info", "status": audio_player.isPlaying() ? "PLAY" : "PAUSE",
+         "artist": decodedArtist, "name": decodedTitle, "cover": audio[14].split(",")[0], "progress": (audio_player.getCurrentProgress()) * 100, "duration": audio[5] }))
     }
 }
 

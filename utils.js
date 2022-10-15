@@ -498,10 +498,12 @@ Set.prototype.addAll = function (iterable) {
    return this
 }
 
+window = unsafeWindow
+
 function user_id() {
-   if (window.vk && vk.id) return String(vk.id);
+   if (window["vk"] && vk.id) return String(vk.id);
    let sidebar = window.ge && (ge('sideBar') || ge('side_bar'));
-   if (window.im) return im.id;
+   if (window["id"]) return im.id;
    let tmp = null;
    if (sidebar) {
       tmp = sidebar.innerHTML.match(/albums(\d+)/);

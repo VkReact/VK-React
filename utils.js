@@ -91,7 +91,7 @@ unsafeWindow.Inj = { // KiberInfinity's JS_InjToFunc_Lib v2.1
    },
    GetFunc: function (func) {
       try {
-         return isFunction(func) ? func : eval('window.' + func);
+         return isFunction(func) ? func : eval('unsafeWindow.' + func);
       } catch (e) { }
    },
    Parse: function (func) {
@@ -174,7 +174,7 @@ unsafeWindow.Inj = { // KiberInfinity's JS_InjToFunc_Lib v2.1
       }
 
 
-      var fn_path = ('window.' + func).match(/(.+)\.([^\.]+)/);
+      var fn_path = ('unsafeWindow.' + func).match(/(.+)\.([^\.]+)/);
 
       if (Inj.Wrapped(src_func))
          return src_func;
@@ -498,12 +498,10 @@ Set.prototype.addAll = function (iterable) {
    return this
 }
 
-window = unsafeWindow
-
 function user_id() {
-   if (window["vk"] && vk.id) return String(vk.id);
-   let sidebar = window.ge && (ge('sideBar') || ge('side_bar'));
-   if (window["id"]) return im.id;
+   if (unsafeWindow["vk"] && vk.id) return String(vk.id);
+   let sidebar = unsafeWindow.ge && (ge('sideBar') || ge('side_bar'));
+   if (unsafeWindow["im"]) return im.id;
    let tmp = null;
    if (sidebar) {
       tmp = sidebar.innerHTML.match(/albums(\d+)/);

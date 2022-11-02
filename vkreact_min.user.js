@@ -20,6 +20,7 @@
 // @connect      vk-cdn.com
 // @connect      vk-cdn.net
 // @connect      userapi.com
+// @connect      github.com
 // @connect      vkuseraudio.net
 // @connect      vkuservideo.net
 // @require      https://raw.githubusercontent.com/VkReact/VK-React/main/vkreact.js

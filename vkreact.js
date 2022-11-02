@@ -27,8 +27,6 @@ var VkAPI = {
 //style = await style.text()
 //GM_addStyle(style)
 
-window = unsafeWindow
-
 let xhr = GM_xmlhttpRequest
 GM_xmlhttpRequest = function (details) {
     return new Promise((resolve, reject) => {
@@ -71,7 +69,7 @@ function VkReactBox(options) {
         }
     }
 }
-window.VkReactBox = VkReactBox
+unsafeWindow.VkReactBox = VkReactBox
 
 var VkReactAPI = {
     initialize: function () {
